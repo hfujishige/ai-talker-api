@@ -4,12 +4,12 @@ use axum::{
 };
 // use axum::extract::State;
 use crate::AppState;
-use crate::handlers::pjsip_realtime_handler::{
+use crate::restapi::handlers::pjsip_realtime_handler::{
     create_pjsip_account_handler, delete_pjsip_account_handler, get_pjsip_accounts_handler,
 };
 
-pub fn pjsip_realtime_router(state: AppState) -> Router {
-    // base path is /api/v1/pjsip_realtime/
+pub fn heartbeat_router(state: AppState) -> Router {
+    // base path is /api/v1/
     Router::new()
         .route("/accounts", get(get_pjsip_accounts_handler))
         .route("/accounts", post(create_pjsip_account_handler))
