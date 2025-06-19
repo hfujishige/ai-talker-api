@@ -11,13 +11,13 @@ use serial_test::serial;
 use sqlx::MySqlPool;
 use tower::ServiceExt;
 
-#[tokio::test]
 #[serial]
-async fn test_add_user() {
+#[tokio::test]
+async fn test_create_pjsip_realtime_account() {
     /*
     curl -X POST -H "Content-Type: application/json" \
-      -d '{"login_id" : "test_user" , "email" : "test_user@example.com", "password": "test_password", "name": "Test User" }' \
-      http://localhost:3000/api/v1/pjsip_realtime/add_user
+      -d '{"username" : "test_user" , ... , "from_user": "Test default_user" }' \
+      http://localhost:3000/api/v1/pjsip_realtime/accounts/
     */
     // Config file
     from_filename(".env.test").ok();
@@ -33,7 +33,7 @@ async fn test_add_user() {
         "password": "test_password",
         "transport": "TransportUdp",
         "context": "default",
-        "from_domain": "default_user",
+        "from_domain": "default_domain",
         "from_user": "default_user",
     });
 

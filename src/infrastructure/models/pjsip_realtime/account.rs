@@ -19,6 +19,17 @@ pub struct PjsipRealtimeAccount {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PjsipRealtimeAccountWithId {
+    pub id: String,
+    pub username: String,
+    pub password: String,
+    pub transport: TransportType,
+    pub context: String,
+    pub from_domain: String,
+    pub from_user: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PjsipDeleteAccount {
     pub account_id: String,
 }

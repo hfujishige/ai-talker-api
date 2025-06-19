@@ -18,7 +18,8 @@ use ulid::Ulid;
 pub async fn create_udp_pjsip_account(
     state: State<AppState>,
     account: &PjsipRealtimeAccount,
-) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+    // ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     println!("TODO create_udp_account validation here.");
 
     // validation
@@ -75,15 +76,14 @@ pub async fn create_udp_pjsip_account(
     match result {
         Ok(_) => {
             transaction.commit().await.unwrap();
-            Ok(StatusCode::CREATED)
+            let value: Value = serde_json::json!({"id": account_ulid});
+            Ok((StatusCode::CREATED, Json(value)))
         }
         Err(e) => {
             transaction.rollback().await.unwrap();
             let error_message = format!("Failed to create UDP account: {}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": error_message })),
-            ))
+            let value: Value = serde_json::json!({ "error": error_message });
+            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(value)))
         }
     }
 }

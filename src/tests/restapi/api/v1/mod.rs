@@ -1,1 +1,0 @@
-mod pjsip_realtime;
