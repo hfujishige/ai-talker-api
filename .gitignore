@@ -1,3 +1,4 @@
 /target
 /container_volumes
 .DS_Store
+.*.swp

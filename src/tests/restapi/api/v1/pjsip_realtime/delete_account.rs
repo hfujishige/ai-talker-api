@@ -1,6 +1,6 @@
 use crate::infrastructure::models::pjsip_realtime::account::PjsipRealtimeAccountWithId;
 use crate::{AppState, create_pjsip_pool};
-use axum::http::Response;
+
 use axum::{
     Router,
     body::Body,
