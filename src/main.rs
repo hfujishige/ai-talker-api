@@ -6,38 +6,62 @@ mod tests;
 use axum::Router;
 
 use dotenvy::dotenv;
-use sqlx::{MySqlPool, mysql::MySqlPoolOptions};
+use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::env;
 use tokio::net::TcpListener;
 
 #[derive(Clone)]
 struct AppState {
-    pjsip_db: MySqlPool,
+    pjsip_db: PgPool,
 }
 
-async fn create_pjsip_pool() -> MySqlPool {
+async fn create_pjsip_pool() -> Result<PgPool, sqlx::Error> {
     let db_scheme: String = env::var("PJSIP_DB_SCHEME").expect("PJSIP_DB_SCHEME must be set");
     let db_user: String = env::var("PJSIP_DB_USER").expect("PJSIP_DB_USER must be set");
-    let db_password: String = env::var("PJSIP_DB_PWD").expect("PJSIP_DB_PASSWORD must be set");
+    let db_password: String = env::var("PJSIP_DB_PWD").expect("PJSIP_DB_PWD must be set");
     let db_host: String = env::var("PJSIP_DB_HOST").expect("PJSIP_DB_HOST must be set");
     let db_port: String = env::var("PJSIP_DB_PORT").expect("PJSIP_DB_PORT must be set");
     let db_catalog: String = env::var("PJSIP_DB_CATALOG").expect("PJSIP_DB_CATALOG must be set");
+    let db_ssl_mode: String = env::var("PJSIP_DB_SSL_MODE").expect("PJSIP_DB_SSL_MODE must be set");
+
+    // Pool configuration
     let db_max_conn: u32 = env::var("PJSIP_DB_POOL_SIZE")
         .expect("PJSIP_DB_POOL_SIZE must be set")
         .parse()
-        .unwrap();
+        .expect("PJSIP_DB_POOL_SIZE must be a valid number");
+
+    let db_max_lifetime: u64 = env::var("PJSIP_DB_MAX_LIFETIME")
+        .expect("PJSIP_DB_MAX_LIFETIME must be set")
+        .parse()
+        .expect("PJSIP_DB_MAX_LIFETIME must be a valid number");
+
+    let db_max_idle: u64 = env::var("PJSIP_DB_MAX_IDLE")
+        .expect("PJSIP_DB_MAX_IDLE must be set")
+        .parse()
+        .expect("PJSIP_DB_MAX_IDLE must be a valid number");
+
+    let db_timeout: u64 = env::var("PJSIP_DB_TIMEOUT")
+        .expect("PJSIP_DB_TIMEOUT must be set")
+        .parse()
+        .expect("PJSIP_DB_TIMEOUT must be a valid number");
 
     let url: String = format!(
-        "{}://{}:{}@{}:{}/{}",
-        db_scheme, db_user, db_password, db_host, db_port, db_catalog
+        "{}://{}:{}@{}:{}/{}?sslmode={}",
+        db_scheme, db_user, db_password, db_host, db_port, db_catalog, db_ssl_mode
     );
 
-    println!("Connecting to PJSIP database at: {}", url);
-    MySqlPoolOptions::new()
+    println!(
+        "Connecting to PJSIP database at: {}://{}:***@{}:{}/{}?sslmode={}",
+        db_scheme, db_user, db_host, db_port, db_catalog, db_ssl_mode
+    );
+
+    PgPoolOptions::new()
         .max_connections(db_max_conn)
+        .max_lifetime(Some(std::time::Duration::from_secs(db_max_lifetime)))
+        .idle_timeout(Some(std::time::Duration::from_secs(db_max_idle)))
+        .acquire_timeout(std::time::Duration::from_secs(db_timeout))
         .connect(&url)
         .await
-        .expect("Failed to connect to PJSIP database")
 }
 
 #[tokio::main]
@@ -49,22 +73,37 @@ async fn main() {
     // configurations
     dotenv().ok();
 
-    let pjsip_db: MySqlPool = create_pjsip_pool().await;
+    println!("Starting AI Talker API...");
+    println!("Loading database configuration...");
 
-    let state = AppState { pjsip_db };
+    // Debug: print environment variables
+    println!("PJSIP_DB_SCHEME: {:?}", env::var("PJSIP_DB_SCHEME"));
+    println!("PJSIP_DB_USER: {:?}", env::var("PJSIP_DB_USER"));
+    println!("PJSIP_DB_HOST: {:?}", env::var("PJSIP_DB_HOST"));
+    println!("PJSIP_DB_PORT: {:?}", env::var("PJSIP_DB_PORT"));
+    println!("PJSIP_DB_CATALOG: {:?}", env::var("PJSIP_DB_CATALOG"));
 
-    let router: Router = restapi::routes::root::create_router(state.clone());
-    // let router: Router = Router::new().route("/", get(hello_world)).nest(
-    //     "/api/v1/pjsip_realtime",
-    //     pjsip_realtime_router(state.clone()),
-    // );
+    match create_pjsip_pool().await {
+        Ok(pool) => {
+            println!("Database connection pool created successfully");
+            let state = AppState { pjsip_db: pool };
 
-    let listen_ipv4: String = env::var("LISTEN_IPV4").expect("LISTEN_IPV4 must be set");
-    let listen_port_v4: String = env::var("LISTEN_PORT_V4").expect("LISTEN_PORT_V4 must be set");
-    // RDBMS
-    let listen_addr: String = format!("{}:{}", listen_ipv4, listen_port_v4);
-    let listener: TcpListener = tokio::net::TcpListener::bind(&listen_addr).await.unwrap();
-    axum::serve(listener, router).await.unwrap();
+            let router: Router = restapi::routes::root::create_router(state.clone());
+
+            let listen_ipv4: String = env::var("LISTEN_IPV4").expect("LISTEN_IPV4 must be set");
+            let listen_port_v4: String =
+                env::var("LISTEN_PORT_V4").expect("LISTEN_PORT_V4 must be set");
+            let listen_addr: String = format!("{}:{}", listen_ipv4, listen_port_v4);
+
+            println!("Starting server on {}", listen_addr);
+            let listener: TcpListener = tokio::net::TcpListener::bind(&listen_addr).await.unwrap();
+            axum::serve(listener, router).await.unwrap();
+        }
+        Err(e) => {
+            eprintln!("Failed to create database connection pool: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
 
 // async fn hello_world() -> impl IntoResponse {

@@ -18,6 +18,26 @@ start pgsql container.
 `cargo install cargo-llvm-cov`
 
 - run unit test  
-`cargo llvm-cov --workspace --html`  
+<run>  
+```sh
+cargo llvm-cov --workspace --html
+```
+or
+```sh
+RUST_BACKTRACE=1 cargo llvm-cov --workspace --html
+```
 ran unit test is output to `target-cov/html` directory.'
 
+
+# DATABASE Connection String
+
+define connection string at .env files (.env, .env.test, ...)
+```sh
+cargo sqlx prepare
+```
+
+or
+```sh
+export DATABASE_URL=postgres://username:password@localhost/dbname
+cargo sqlx prepare
+```

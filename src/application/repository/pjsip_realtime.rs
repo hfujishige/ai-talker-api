@@ -18,7 +18,6 @@ use ulid::Ulid;
 pub async fn create_udp_pjsip_account(
     state: State<AppState>,
     account: &PjsipRealtimeAccount,
-    // ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     println!("TODO create_udp_account validation here.");
 
@@ -30,9 +29,9 @@ pub async fn create_udp_pjsip_account(
     // ps_auth
     let ps_auth = PsAuthForUdp {
         id: account_ulid.clone(),
-        auth_type: AuthType::Userpass,
-        password: account.username.clone(),
-        username: account.password.clone(),
+        auth_type: AuthType::Userpass, // ここは必ず AuthType の値
+        username: account.username.clone(),
+        password: account.password.clone(),
     };
 
     // ps_aor
@@ -48,11 +47,10 @@ pub async fn create_udp_pjsip_account(
         qualify_timeout: 9,
     };
 
-    // TODO get allow param from upper
     // ps_endpoint
     let ps_endpoint = PsEndpointForUdp {
         id: account_ulid.clone(),
-        transport: TransportType::TransportUdp.to_string(),
+        transport: TransportType::TransportUdp,
         aors: account_ulid.clone(),
         auth: account_ulid.clone(),
         context: account.context.clone(),
@@ -70,17 +68,26 @@ pub async fn create_udp_pjsip_account(
     };
 
     // register account in database
-    let mut transaction = state.pjsip_db.begin().await.unwrap();
+    let mut transaction = state.pjsip_db.begin().await.map_err(|e| {
+        let error_message = format!("Failed to begin transaction: {}", e);
+        let value: Value = serde_json::json!({ "error": error_message });
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(value))
+    })?;
+
     let result =
         exec_insert_udp_pjsip_account(&mut transaction, ps_auth, ps_aor, ps_endpoint).await;
     match result {
         Ok(_) => {
-            transaction.commit().await.unwrap();
+            transaction.commit().await.map_err(|e| {
+                let error_message = format!("Failed to commit transaction: {}", e);
+                let value: Value = serde_json::json!({ "error": error_message });
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(value))
+            })?;
             let value: Value = serde_json::json!({"id": account_ulid});
             Ok((StatusCode::CREATED, Json(value)))
         }
         Err(e) => {
-            transaction.rollback().await.unwrap();
+            let _ = transaction.rollback().await;
             let error_message = format!("Failed to create UDP account: {}", e);
             let value: Value = serde_json::json!({ "error": error_message });
             Err((StatusCode::INTERNAL_SERVER_ERROR, Json(value)))
@@ -93,15 +100,28 @@ pub async fn delete_pjsip_account(
     account_id: String,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     // repository delete
-    let mut transaction = state.pjsip_db.begin().await.unwrap();
+    let mut transaction = state.pjsip_db.begin().await.map_err(|e| {
+        let error_message = format!("Failed to begin transaction: {}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": error_message })),
+        )
+    })?;
+
     let result = exec_delete_pjsip_account(&mut transaction, account_id).await;
     match result {
         Ok(_) => {
-            transaction.commit().await.unwrap();
+            transaction.commit().await.map_err(|e| {
+                let error_message = format!("Failed to commit transaction: {}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": error_message })),
+                )
+            })?;
             Ok(StatusCode::NO_CONTENT)
         }
         Err(e) => {
-            transaction.rollback().await.unwrap();
+            let _ = transaction.rollback().await;
             let error_message = format!("Failed to delete account: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,

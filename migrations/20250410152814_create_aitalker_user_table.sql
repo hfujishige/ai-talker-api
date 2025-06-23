@@ -10,9 +10,9 @@
 -- PostgreSQL script to create a users table with indexes   
 */
 -- Drop the table if it exists
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS aitalker_users;
 -- Create the users table
-CREATE TABLE users (
+CREATE TABLE aitalker_users (
    id SERIAL PRIMARY KEY,
    login_id VARCHAR(50) NOT NULL,
    name VARCHAR(100) NOT NULL,
@@ -23,6 +23,6 @@ CREATE TABLE users (
 );
 
 -- Create an index on the username column for faster lookups
-CREATE INDEX idx_username ON users(name);
+CREATE INDEX idx_username ON aitalker_users(name);
 -- Create an index on the email column for faster lookups
-CREATE INDEX idx_email ON users(email);
+CREATE INDEX idx_email ON aitalker_users(email);
