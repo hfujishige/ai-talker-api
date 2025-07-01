@@ -18,7 +18,8 @@
             "stopOnEntry": false,
             "env": {
                 "RUST_BACKTRACE": "1"
-            }
+            },
+            "preLaunchTask": "rust: cargo build"
         }
     ]
 }

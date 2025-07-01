@@ -1,14 +1,16 @@
 mod application;
 mod infrastructure;
 mod restapi;
+
+#[cfg(test)]
 mod tests;
 
 use axum::Router;
-
 use dotenvy::dotenv;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use std::env;
 use tokio::net::TcpListener;
+use tracing::{debug, info};
 
 #[derive(Clone)]
 struct AppState {
@@ -73,19 +75,20 @@ async fn main() {
     // configurations
     dotenv().ok();
 
-    println!("Starting AI Talker API...");
-    println!("Loading database configuration...");
+    info!("Starting AI Talker API...");
+    info!("Loading database configuration...");
 
     // Debug: print environment variables
-    println!("PJSIP_DB_SCHEME: {:?}", env::var("PJSIP_DB_SCHEME"));
-    println!("PJSIP_DB_USER: {:?}", env::var("PJSIP_DB_USER"));
-    println!("PJSIP_DB_HOST: {:?}", env::var("PJSIP_DB_HOST"));
-    println!("PJSIP_DB_PORT: {:?}", env::var("PJSIP_DB_PORT"));
-    println!("PJSIP_DB_CATALOG: {:?}", env::var("PJSIP_DB_CATALOG"));
+    debug!("PJSIP_DB_SCHEME: {:?}", env::var("PJSIP_DB_SCHEME"));
+    debug!("PJSIP_DB_USER: {:?}", env::var("PJSIP_DB_USER"));
+    debug!("PJSIP_DB_HOST: {:?}", env::var("PJSIP_DB_HOST"));
+    debug!("PJSIP_DB_PORT: {:?}", env::var("PJSIP_DB_PORT"));
+    debug!("PJSIP_DB_CATALOG: {:?}", env::var("PJSIP_DB_CATALOG"));
 
+    info!("Start database connection pool creation");
     match create_pjsip_pool().await {
         Ok(pool) => {
-            println!("Database connection pool created successfully");
+            info!("Database connection pool created successfully");
             let state = AppState { pjsip_db: pool };
 
             let router: Router = restapi::routes::root::create_router(state.clone());
@@ -95,12 +98,12 @@ async fn main() {
                 env::var("LISTEN_PORT_V4").expect("LISTEN_PORT_V4 must be set");
             let listen_addr: String = format!("{}:{}", listen_ipv4, listen_port_v4);
 
-            println!("Starting server on {}", listen_addr);
+            tracing::info!("Starting server on {}", listen_addr);
             let listener: TcpListener = tokio::net::TcpListener::bind(&listen_addr).await.unwrap();
             axum::serve(listener, router).await.unwrap();
         }
         Err(e) => {
-            eprintln!("Failed to create database connection pool: {}", e);
+            tracing::error!("Failed to create database connection pool: {}", e);
             std::process::exit(1);
         }
     }

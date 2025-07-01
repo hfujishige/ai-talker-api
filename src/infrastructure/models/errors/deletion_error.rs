@@ -1,8 +1,8 @@
 #[derive(Debug)]
 pub enum DeletionError {
     DatabaseError(sqlx::Error),
-    ValidationError(String),
-    DeletionFailed,
+    IdNotSpecified,
+    NotFoundRecord,
 }
 
 impl From<sqlx::Error> for DeletionError {
@@ -15,8 +15,8 @@ impl std::fmt::Display for DeletionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DeletionError::DatabaseError(err) => write!(f, "Database error: {}", err),
-            DeletionError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
-            DeletionError::DeletionFailed => write!(f, "Insertion failed"),
+            DeletionError::IdNotSpecified => write!(f, "Account ID not specified"),
+            DeletionError::NotFoundRecord => write!(f, "No record found for the given ID"),
         }
     }
 }

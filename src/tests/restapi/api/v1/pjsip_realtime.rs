@@ -1,7 +1,4 @@
-#[cfg(test)]
 pub mod create_account;
-#[cfg(test)]
+pub mod create_account_with_external_id;
 pub mod delete_account;
-
-#[cfg(test)]
 pub mod get_accounts;

@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS pjsip_realtime_accounts;
 
 -- Create the pjsip_realtime_accounts table
 CREATE TABLE pjsip_realtime_accounts (
-    id VARCHAR(26) PRIMARY KEY,  -- ULID is 26 characters
+    id VARCHAR(255) PRIMARY KEY,  -- ULID is 26 characters
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
     transport VARCHAR(10) NOT NULL
