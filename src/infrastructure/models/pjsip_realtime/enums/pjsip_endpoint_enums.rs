@@ -2,7 +2,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 
 // PJSIP Transport Type
-#[derive(Debug, Clone, Serialize, sqlx::Type)]
+#[derive(Debug, Clone, PartialEq, Serialize, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "transport_type", rename_all = "lowercase")]
 pub enum TransportType {
     Udp,

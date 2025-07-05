@@ -1,4 +1,5 @@
 use crate::infrastructure::models::pjsip_realtime::account::PjsipRealtimeAccountWithId;
+use crate::tests::restapi::api::v1::pjsip_realtime::account_helper::reset_pjsip_realtime_database;
 use crate::{AppState, create_pjsip_pool};
 
 use axum::{
@@ -35,6 +36,9 @@ async fn test_delete_pjsip_realtime_account() {
     };
     let state: AppState = AppState { pjsip_db };
     let app: Router = crate::restapi::routes::root::create_router(state.clone());
+
+    // reset database before test
+    reset_pjsip_realtime_database(&state.pjsip_db).await;
 
     // Define the JSON payload
     let payload: String = json!({
@@ -78,35 +82,6 @@ async fn test_delete_pjsip_realtime_account() {
     let del_response = del_app.oneshot(del_request).await.unwrap();
     // Assert response JSON and payload
     assert_eq!(del_response.status(), StatusCode::NO_CONTENT);
-
-    // Clean up test data
-    let create_pjsip_pool_result2: Result<Pool<Postgres>, Error> = create_pjsip_pool().await;
-    let pjsip_db2: PgPool = match create_pjsip_pool_result2 {
-        Ok(pool) => pool,
-        Err(e) => {
-            tracing::error!("Failed to create PJSIP database connection pool: {}", e);
-            panic!("Failed to create PJSIP database connection pool");
-        }
-    };
-    let mut transaction: sqlx::Transaction<'static, sqlx::Postgres> =
-        pjsip_db2.begin().await.unwrap();
-    let delete_ps_auths_sql: &'static str = r#"DELETE FROM ps_auths;"#;
-    let delete_ps_aors_sql: &'static str = r#"DELETE FROM ps_aors;"#;
-    let delete_ps_endpoints_sql: &'static str = r#"DELETE FROM ps_endpoints;"#;
-    sqlx::query(delete_ps_auths_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-    sqlx::query(delete_ps_aors_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-    sqlx::query(delete_ps_endpoints_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-
-    transaction.commit().await.unwrap();
-    pjsip_db2.close().await;
-    tracing::info!("Delete test data successfully.");
+    // reset database after test
+    reset_pjsip_realtime_database(&state.pjsip_db).await;
 }

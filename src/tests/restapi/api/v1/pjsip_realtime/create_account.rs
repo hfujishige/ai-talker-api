@@ -1,5 +1,5 @@
+use crate::tests::restapi::api::v1::pjsip_realtime::account_helper::reset_pjsip_realtime_database;
 use crate::{AppState, create_pjsip_pool};
-
 use axum::{
     body::Body,
     http::{Request, StatusCode},
@@ -35,8 +35,11 @@ async fn test_create_pjsip_realtime_account() {
     let state = AppState { pjsip_db };
     let app = crate::restapi::routes::root::create_router(state.clone());
 
+    // reset database before test
+    reset_pjsip_realtime_database(&state.pjsip_db).await;
+
     // Define the JSON payload
-    let payload: Value = json!({
+    let payload: Value = serde_json::json!({
         "username": "test_user",
         "password": "test_password",
         "transport": "udp",
@@ -65,6 +68,10 @@ async fn test_create_pjsip_realtime_account() {
     let response_json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     // Assert response JSON and payload
+    println!(
+        "check transport: request: {}, response: {}",
+        payload["transport"], response_json["transport"]
+    );
     assert_eq!(response_json["username"], payload["username"]);
     assert_eq!(response_json["password"], payload["password"]);
     assert_eq!(response_json["transport"], payload["transport"]);
@@ -72,33 +79,37 @@ async fn test_create_pjsip_realtime_account() {
     assert_eq!(response_json["from_domain"], payload["from_domain"]);
     assert_eq!(response_json["from_user"], payload["from_user"]);
 
-    // Clean up test data
-    let create_pjsip_pool_result2: Result<Pool<Postgres>, Error> = create_pjsip_pool().await;
-    let pjsip_db2: PgPool = match create_pjsip_pool_result2 {
-        Ok(pool) => pool,
-        Err(e) => {
-            tracing::error!("Failed to create PJSIP database connection pool: {}", e);
-            panic!("Failed to create PJSIP database connection pool");
-        }
-    };
-    let mut transaction = pjsip_db2.begin().await.unwrap();
-    let delete_ps_auths_sql = r#"DELETE FROM ps_auths;"#;
-    let delete_ps_aors_sql = r#"DELETE FROM ps_aors;"#;
-    let delete_ps_endpoints_sql = r#"DELETE FROM ps_endpoints;"#;
-    sqlx::query(delete_ps_auths_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-    sqlx::query(delete_ps_aors_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-    sqlx::query(delete_ps_endpoints_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
+    // reset database after test
+    reset_pjsip_realtime_database(&state.pjsip_db).await;
 
-    transaction.commit().await.unwrap();
-    pjsip_db2.close().await;
-    tracing::info!("Delete test data successfully.");
+    // Clean up test data
+    // let create_pjsip_pool_result2: Result<Pool<Postgres>, Error> = create_pjsip_pool().await;
+    // let pjsip_db2: PgPool = match create_pjsip_pool_result2 {
+    //     Ok(pool) => pool,
+    //     Err(e) => {
+    //         tracing::error!("Failed to create PJSIP database connection pool: {}", e);
+    //         panic!("Failed to create PJSIP database connection pool");
+    //     }
+    // };
+
+    // let mut transaction = pjsip_db2.begin().await.unwrap();
+    // let delete_ps_auths_sql = r#"DELETE FROM ps_auths;"#;
+    // let delete_ps_aors_sql = r#"DELETE FROM ps_aors;"#;
+    // let delete_ps_endpoints_sql = r#"DELETE FROM ps_endpoints;"#;
+    // sqlx::query(delete_ps_auths_sql)
+    //     .execute(&mut *transaction)
+    //     .await
+    //     .unwrap();
+    // sqlx::query(delete_ps_aors_sql)
+    //     .execute(&mut *transaction)
+    //     .await
+    //     .unwrap();
+    // sqlx::query(delete_ps_endpoints_sql)
+    //     .execute(&mut *transaction)
+    //     .await
+    //     .unwrap();
+
+    // transaction.commit().await.unwrap();
+    // pjsip_db2.close().await;
+    // tracing::info!("Delete test data successfully.");
 }

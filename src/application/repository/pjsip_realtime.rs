@@ -116,7 +116,17 @@ pub async fn create_udp_pjsip_account(
             let _ = transaction.rollback().await;
             let error_message = format!("Failed to create UDP account: {}", e);
             let value: Value = serde_json::json!({ "error": error_message });
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(value)))
+            match e {
+                RegistrationError::DuplicateError => {
+                    // Handle duplicate error specifically
+                    Err((StatusCode::CONFLICT, Json(value)))
+                }
+                _ => {
+                    // Handle other errors {
+                    tracing::error!("Failed to create UDP account: {}", e);
+                    Err((StatusCode::INTERNAL_SERVER_ERROR, Json(value)))
+                }
+            }
         }
     }
 }

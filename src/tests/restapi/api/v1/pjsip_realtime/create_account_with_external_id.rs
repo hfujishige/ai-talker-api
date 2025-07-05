@@ -14,7 +14,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        AppState, infrastructure::models::pjsip_realtime::account::PjsipRealtimeAccountWithId,
+        AppState,
+        infrastructure::models::pjsip_realtime::{
+            account::PjsipRealtimeAccountWithId, enums::pjsip_endpoint_enums::TransportType,
+        },
         restapi::routes::pjsip_realtime_router::pjsip_realtime_router,
     };
 
@@ -26,20 +29,48 @@ mod tests {
             .await
             .expect("Failed to connect to test database");
 
+        // Clean up any existing test data
+        let _ = sqlx::query("DELETE FROM pjsip_realtime_accounts WHERE id = '01HX1234567890ABCDEFGHIJK9' OR username = 'external_id_test_user'")
+            .execute(&pool)
+            .await;
+        let _ = sqlx::query("DELETE FROM ps_auths WHERE id = '01HX1234567890ABCDEFGHIJK9' OR username = 'external_id_test_user'")
+            .execute(&pool)
+            .await;
+        let _ = sqlx::query("DELETE FROM ps_aors WHERE id = '01HX1234567890ABCDEFGHIJK9' OR username = 'external_id_test_user'")
+            .execute(&pool)
+            .await;
+        let _ = sqlx::query("DELETE FROM ps_endpoints WHERE id = '01HX1234567890ABCDEFGHIJK9' OR username = 'external_id_test_user'")
+            .execute(&pool)
+            .await;
+
         let state: AppState = AppState { pjsip_db: pool };
         pjsip_realtime_router(state)
+    }
+
+    async fn cleanup_test_data() {
+        let database_url: String =
+            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+
+        if let Ok(pool) = PgPool::connect(&database_url).await {
+            let _ = sqlx::query("DELETE FROM pjsip_realtime_accounts WHERE id = '01HX1234567890ABCDEFGHIJK9' OR username = 'external_id_test_user'")
+                .execute(&pool)
+                .await;
+        }
     }
 
     #[serial]
     #[tokio::test]
     async fn test_create_pjsip_account_with_external_id_success() {
+        // Clean up any leftover test data
+        cleanup_test_data().await;
+
         let app: Router = setup_test_app().await;
 
         let request_body: Value = serde_json::json!({
             "id": "01HX1234567890ABCDEFGHIJK9",
             "username": "external_id_test_user",
             "password": "test_password_123",
-            "transport": "UDP",
+            "transport": "udp",
             "context": "default",
             "from_domain": "test.example.com",
             "from_user": "external_id_test_user"
@@ -61,18 +92,18 @@ mod tests {
 
         assert_eq!(created_account.id, "01HX1234567890ABCDEFGHIJK9");
         assert_eq!(created_account.username, "external_id_test_user");
+        assert_eq!(created_account.transport, TransportType::Udp);
         assert_eq!(
-            created_account.transport.to_string(),
-            request_body["transport"].to_string()
+            created_account.context,
+            request_body["context"].as_str().unwrap()
         );
-        assert_eq!(created_account.context, request_body["context"].to_string());
         assert_eq!(
             created_account.from_domain,
-            request_body["from_domain"].to_string()
+            request_body["from_domain"].as_str().unwrap()
         );
         assert_eq!(
             created_account.from_user,
-            request_body["from_user"].to_string()
+            request_body["from_user"].as_str().unwrap()
         );
     }
 
@@ -84,7 +115,7 @@ mod tests {
             "id": "",
             "username": "test_user_empty_id",
             "password": "test_password_123",
-            "transport": "UDP",
+            "transport": "udp",
             "context": "default",
             "from_domain": "test.example.com",
             "from_user": "test_user_empty_id"
@@ -121,7 +152,7 @@ mod tests {
             "id": "01HX1234567890DUPLICATE_ID",
             "username": "duplicate_test_user_1",
             "password": "test_password_123",
-            "transport": "UDP",
+            "transport": "udp",
             "context": "default",
             "from_domain": "test.example.com",
             "from_user": "duplicate_test_user_1"
@@ -144,7 +175,7 @@ mod tests {
             "id": "01HX1234567890DUPLICATE_ID",
             "username": "duplicate_test_user_2",
             "password": "test_password_456",
-            "transport": "TCP",
+            "transport": "udp",
             "context": "users",
             "from_domain": "test2.example.com",
             "from_user": "duplicate_test_user_2"

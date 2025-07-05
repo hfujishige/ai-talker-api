@@ -1,16 +1,15 @@
-use axum::http::StatusCode;
-use sqlx::postgres::PgRow;
-use sqlx::{PgPool, Postgres, Row, Transaction, postgres::PgQueryResult};
-
-use crate::infrastructure::models::errors::deletion_error::DeletionError;
 use crate::infrastructure::models::{
-    errors::registration_error::RegistrationError,
+    errors::{deletion_error::DeletionError, registration_error::RegistrationError},
     pjsip_realtime::{
         account::PjsipRealtimeAccountWithId,
         enums::pjsip_endpoint_enums::TransportType,
         sip_udp::{PsAorForUdp, PsAuthForUdp, PsEndpointForUdp},
     },
 };
+use axum::http::StatusCode;
+use sqlx::postgres::PgRow;
+use sqlx::{PgPool, Postgres, Row, Transaction, postgres::PgQueryResult};
+use tracing::debug;
 
 // registration method
 pub async fn exec_insert_udp_pjsip_account(
@@ -26,6 +25,22 @@ pub async fn exec_insert_udp_pjsip_account(
         return Err(RegistrationError::ValidationError(
             "ID cannot be empty".to_string(),
         ));
+    }
+
+    // check duplicate account
+    // check exist record.
+    let exists: bool = sqlx::query_scalar(
+        r#"SELECT EXISTS(SELECT 1 FROM pjsip_realtime_accounts WHERE id = $1 or username = $2)"#,
+    )
+    .bind(&account.id)
+    .bind(&account.username)
+    .fetch_one(&mut **transaction)
+    .await?;
+
+    // Check if the record count is 0 (no records exist)
+    println!("Checking account with ID {} exists: {}", account.id, exists);
+    if exists {
+        return Err(RegistrationError::DuplicateError);
     }
 
     // Insert SQL statements for pjsip_realtime tables with placeholders
@@ -184,12 +199,12 @@ pub async fn get_all_pjsip_accounts(
     let mut accounts = Vec::new();
     for row in rows {
         let transport_str: String = row.get("transport");
-        let transport = match transport_str.as_str() {
-            "UDP" => TransportType::Udp,
-            "TCP" => TransportType::Tcp,
-            "TLS" => TransportType::Tls,
-            "WS" => TransportType::Ws,
-            "WSS" => TransportType::Wss,
+        let transport = match transport_str.to_lowercase().as_str() {
+            "udp" => TransportType::Udp,
+            "tcp" => TransportType::Tcp,
+            "tls" => TransportType::Tls,
+            "ws" => TransportType::Ws,
+            "wss" => TransportType::Wss,
             _ => TransportType::Udp, // default fallback
         };
 
