@@ -3,6 +3,7 @@ pub enum RegistrationError {
     DatabaseError(sqlx::Error),
     ValidationError(String),
     InsertionFailed,
+    DuplicateError,
 }
 
 impl From<sqlx::Error> for RegistrationError {
@@ -17,6 +18,7 @@ impl std::fmt::Display for RegistrationError {
             RegistrationError::DatabaseError(err) => write!(f, "Database error: {}", err),
             RegistrationError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
             RegistrationError::InsertionFailed => write!(f, "Insertion failed"),
+            RegistrationError::DuplicateError => write!(f, "Duplicate error"),
         }
     }
 }

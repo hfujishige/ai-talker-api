@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::infrastructure::models::pjsip_realtime::enums::{
-    pjsip_realtime_common_enums::TurnOnOff,
-    pjsip_auth_enums::AuthType,
-    pjsip_endpoint_enums::{*},
+    pjsip_auth_enums::AuthType, pjsip_endpoint_enums::*, pjsip_realtime_common_enums::TurnOnOff,
 };
 
 // SIP-UDP方式のPJSIP REALTIME 情報
@@ -48,13 +46,14 @@ pub struct PsAorForUdp {
     pub qualify_timeout: i32,
     // pub voicemail_extension: Option<String>,
     pub remove_unavailable: TurnOnOff, // enum('0','1','off','on','false','true','no','yes')
-    // pub qualify_2xx_only: Option<TurnOnOff>, // enum('0','1','off','on','false','true','no','yes')
+
+                                       // pub qualify_2xx_only: Option<TurnOnOff>, // enum('0','1','off','on','false','true','no','yes')
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct PsEndpointForUdp {
     pub id: String,
-    pub transport: String,
+    pub transport: TransportType, // String から TransportType に変更
     pub aors: String,
     pub auth: String,
     pub context: String,
@@ -198,11 +197,3 @@ pub struct PsEndpointForUdp {
     // pub tenantid: Option<String>,
     // pub suppress_moh_on_sendonly: Option<TurnOnOff>,
 }
-
-
-
-
-
-
-
-

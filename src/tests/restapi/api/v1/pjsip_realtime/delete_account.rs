@@ -1,4 +1,5 @@
 use crate::infrastructure::models::pjsip_realtime::account::PjsipRealtimeAccountWithId;
+use crate::tests::restapi::api::v1::pjsip_realtime::account_helper::reset_pjsip_realtime_database;
 use crate::{AppState, create_pjsip_pool};
 
 use axum::{
@@ -10,7 +11,7 @@ use dotenvy::from_filename;
 use http_body_util::BodyExt; // for `collect`
 use serde_json::{Value, json};
 use serial_test::serial;
-use sqlx::MySqlPool;
+use sqlx::{Error, PgPool, Pool, Postgres};
 use tower::ServiceExt;
 
 #[serial]
@@ -25,15 +26,25 @@ async fn test_delete_pjsip_realtime_account() {
     from_filename(".env.test").ok();
 
     // Create a test server
-    let pjsip_db: MySqlPool = create_pjsip_pool().await;
+    let create_pjsip_pool_result: Result<Pool<Postgres>, Error> = create_pjsip_pool().await;
+    let pjsip_db: PgPool = match create_pjsip_pool_result {
+        Ok(pool) => pool,
+        Err(e) => {
+            tracing::error!("Failed to create PJSIP database connection pool: {}", e);
+            panic!("Failed to create PJSIP database connection pool");
+        }
+    };
     let state: AppState = AppState { pjsip_db };
     let app: Router = crate::restapi::routes::root::create_router(state.clone());
+
+    // reset database before test
+    reset_pjsip_realtime_database(&state.pjsip_db).await;
 
     // Define the JSON payload
     let payload: String = json!({
         "username": "test_user",
         "password": "test_password",
-        "transport": "TransportUdp",
+        "transport": "udp",
         "context": "default",
         "from_domain": "default_domain",
         "from_user": "default_user",
@@ -71,27 +82,6 @@ async fn test_delete_pjsip_realtime_account() {
     let del_response = del_app.oneshot(del_request).await.unwrap();
     // Assert response JSON and payload
     assert_eq!(del_response.status(), StatusCode::NO_CONTENT);
-
-    // Clean up test data
-    let pjsip_db2: MySqlPool = create_pjsip_pool().await;
-    let mut transaction: sqlx::Transaction<'static, sqlx::MySql> = pjsip_db2.begin().await.unwrap();
-    let delete_ps_auths_sql: &'static str = r#"DELETE FROM ps_auths;"#;
-    let delete_ps_aors_sql: &'static str = r#"DELETE FROM ps_aors;"#;
-    let delete_ps_endpoints_sql: &'static str = r#"DELETE FROM ps_endpoints;"#;
-    sqlx::query(delete_ps_auths_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-    sqlx::query(delete_ps_aors_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-    sqlx::query(delete_ps_endpoints_sql)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-
-    transaction.commit().await.unwrap();
-    pjsip_db2.close().await;
-    tracing::info!("Delete test data successfully.");
+    // reset database after test
+    reset_pjsip_realtime_database(&state.pjsip_db).await;
 }

@@ -1,7 +1,8 @@
-#[cfg(test)]
-pub mod create_account;
-#[cfg(test)]
-pub mod delete_account;
+// unit test helper functions
+pub(crate) mod account_helper;
 
-#[cfg(test)]
+// unit tests
+pub mod create_account;
+pub mod create_account_with_external_id;
+pub mod delete_account;
 pub mod get_accounts;

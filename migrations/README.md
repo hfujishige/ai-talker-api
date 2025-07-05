@@ -10,11 +10,11 @@ cargo install sqlx-cli
 run these commands at project root directory.
 ```sh
 db_scheme=postgres
-db_host=localhost
+db_host=127.0.0.1
 db_port=5432
 db_user=api_user_rw
 db_pwd=HE4ycm8uCER3
-db_catalog=ai_talker
+db_catalog=asterisk
 
 export DATABASE_URL=${db_scheme}://${db_user}:${db_pwd}@${db_host}:${db_port}/${db_catalog}
 echo "DATABASE_URL=${DATABASE_URL}"

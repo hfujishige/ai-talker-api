@@ -1,17 +1,23 @@
-use axum::http::StatusCode;
-use sqlx::{MySql, Transaction};
-
 use crate::infrastructure::models::{
     errors::{deletion_error::DeletionError, registration_error::RegistrationError},
-    pjsip_realtime::sip_udp::{PsAorForUdp, PsAuthForUdp, PsEndpointForUdp},
+    pjsip_realtime::{
+        account::PjsipRealtimeAccountWithId,
+        enums::pjsip_endpoint_enums::TransportType,
+        sip_udp::{PsAorForUdp, PsAuthForUdp, PsEndpointForUdp},
+    },
 };
+use axum::http::StatusCode;
+use sqlx::postgres::PgRow;
+use sqlx::{PgPool, Postgres, Row, Transaction, postgres::PgQueryResult};
+use tracing::debug;
 
 // registration method
 pub async fn exec_insert_udp_pjsip_account(
-    transaction: &mut Transaction<'_, MySql>,
-    auth: PsAuthForUdp,
-    aor: PsAorForUdp,
-    endpoint: PsEndpointForUdp,
+    transaction: &mut Transaction<'_, Postgres>,
+    account: &PjsipRealtimeAccountWithId,
+    auth: &PsAuthForUdp,
+    aor: &PsAorForUdp,
+    endpoint: &PsEndpointForUdp,
 ) -> Result<StatusCode, RegistrationError> {
     // Validate the input data
     // 事前バリデーション
@@ -21,59 +27,98 @@ pub async fn exec_insert_udp_pjsip_account(
         ));
     }
 
+    // check duplicate account
+    // check exist record.
+    let exists: bool = sqlx::query_scalar(
+        r#"SELECT EXISTS(SELECT 1 FROM pjsip_realtime_accounts WHERE id = $1 or username = $2)"#,
+    )
+    .bind(&account.id)
+    .bind(&account.username)
+    .fetch_one(&mut **transaction)
+    .await?;
+
+    // Check if the record count is 0 (no records exist)
+    println!("Checking account with ID {} exists: {}", account.id, exists);
+    if exists {
+        return Err(RegistrationError::DuplicateError);
+    }
+
     // Insert SQL statements for pjsip_realtime tables with placeholders
-    let auth_insert = r#"
+    // NOTE: This requires the enum definitions to have the correct `#[sqlx(type_name = "...")]` attribute.
+    let account_insert: &'static str = r#"
+        INSERT INTO pjsip_realtime_accounts
+        (id, username, password, transport, context, from_domain, from_user, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"#;
+    let auth_insert: &'static str = r#"
         insert into ps_auths (id, auth_type, password, username)
-        values (?, ?, ?, ?)"#;
-    let aor_insert: &str = r#"
+        values ($1, $2::pjsip_auth_type_values_v2, $3, $4)"#;
+    let aor_insert: &'static str = r#"
         insert into ps_aors (id, default_expiration, max_contacts, minimum_expiration,
-                             qualify_frequency, maximum_expiration, qualify_timeout)
-        values (?, ?, ?, ?, ?, ?, ?)"#;
-    let endpoint_insert: &str = r#"
+                             qualify_frequency, maximum_expiration, qualify_timeout,
+                             remove_existing, remove_unavailable)
+        values ($1, $2, $3, $4, $5, $6, $7, $8::ast_bool_values, $9::ast_bool_values)"#;
+    let endpoint_insert: &'static str = r#"
         insert into ps_endpoints (id, transport, aors, context, disallow, allow, direct_media,
                                   force_rport, rewrite_contact, rtp_symmetric, media_encryption,
-                                  from_domain, from_user)
-        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#;
-    // TODO : define result types MySqlQueryResult to PgQueryResult after migrate mysql to postgres
-    // Execute the insert queries
-    let auth_result = sqlx::query(auth_insert)
-        .bind(auth.id)
-        .bind(auth.auth_type)
-        .bind(auth.password)
-        .bind(auth.username)
+                                  from_domain, from_user, dtmf_mode)
+        values ($1, $2::transport_type, $3, $4, $5, $6, $7::ast_bool_values,
+                $8::ast_bool_values, $9::ast_bool_values, $10::ast_bool_values, $11::pjsip_media_encryption_values,
+                $12, $13, $14::pjsip_dtmf_mode_values_v3)"#;
+    // TODO : define result types MySqlQueryResult to PgQueryResult after migrate mysql to postgres)
+
+    let account_result: PgQueryResult = sqlx::query(account_insert)
+        .bind(&account.id)
+        .bind(&account.username)
+        .bind(&account.password)
+        .bind(account.transport.to_string())
+        .bind(&account.context)
+        .bind(&account.from_domain)
+        .bind(&account.from_user)
         .execute(&mut **transaction)
         .await
         .map_err(RegistrationError::from)?;
-    let aor_result = sqlx::query(aor_insert)
-        .bind(aor.id)
-        .bind(aor.default_expiration)
-        .bind(aor.max_contacts)
-        .bind(aor.minimum_expiration)
-        .bind(aor.qualify_frequency)
-        .bind(aor.maximum_expiration)
-        .bind(aor.qualify_timeout)
+    let auth_result: PgQueryResult = sqlx::query(auth_insert)
+        .bind(&auth.id)
+        .bind(&auth.auth_type.to_string())
+        .bind(&auth.password)
+        .bind(&auth.username)
         .execute(&mut **transaction)
         .await
         .map_err(RegistrationError::from)?;
-    let endpoint_result = sqlx::query(endpoint_insert)
-        .bind(endpoint.id)
-        .bind(endpoint.transport)
-        .bind(endpoint.aors)
-        .bind(endpoint.context)
-        .bind(endpoint.disallow)
-        .bind(endpoint.allow)
-        .bind(endpoint.direct_media)
-        .bind(endpoint.force_rport)
-        .bind(endpoint.rewrite_contact)
-        .bind(endpoint.rtp_symmetric)
-        .bind(endpoint.media_encryption)
-        .bind(endpoint.from_domain)
-        .bind(endpoint.from_user)
+    let aor_result: PgQueryResult = sqlx::query(aor_insert)
+        .bind(&aor.id)
+        .bind(&aor.default_expiration)
+        .bind(&aor.max_contacts)
+        .bind(&aor.minimum_expiration)
+        .bind(&aor.qualify_frequency)
+        .bind(&aor.maximum_expiration)
+        .bind(&aor.qualify_timeout)
+        .bind(&aor.remove_existing.to_string())
+        .bind(&aor.remove_unavailable.to_string())
+        .execute(&mut **transaction)
+        .await
+        .map_err(RegistrationError::from)?;
+    let endpoint_result: PgQueryResult = sqlx::query(endpoint_insert)
+        .bind(&endpoint.id)
+        .bind(&endpoint.transport.to_string())
+        .bind(&endpoint.aors)
+        .bind(&endpoint.context)
+        .bind(&endpoint.disallow)
+        .bind(&endpoint.allow)
+        .bind(&endpoint.direct_media.to_string())
+        .bind(&endpoint.force_rport.to_string())
+        .bind(&endpoint.rewrite_contact.to_string())
+        .bind(&endpoint.rtp_symmetric.to_string())
+        .bind(&endpoint.media_encryption.to_string())
+        .bind(&endpoint.from_domain)
+        .bind(&endpoint.from_user)
+        .bind(&endpoint.dtmf_mode.to_string())
         .execute(&mut **transaction)
         .await
         .map_err(RegistrationError::from)?;
     // if any of the insertions failed, return an error
-    if auth_result.rows_affected() == 0
+    if account_result.rows_affected() == 0
+        || auth_result.rows_affected() == 0
         || aor_result.rows_affected() == 0
         || endpoint_result.rows_affected() == 0
     {
@@ -84,42 +129,97 @@ pub async fn exec_insert_udp_pjsip_account(
 }
 
 pub async fn exec_delete_pjsip_account(
-    transaction: &mut Transaction<'_, MySql>,
+    transaction: &mut Transaction<'_, Postgres>,
     account_id: String,
 ) -> Result<StatusCode, DeletionError> {
+    // Validate the account_id
     if account_id.is_empty() {
-        return Err(DeletionError::ValidationError(
-            "Account ID cannot be empty".to_string(),
-        ));
+        return Err(DeletionError::IdNotSpecified);
     }
 
-    // SQL statements to delete from pjsip_realtime tables
-    let auth_delete = r#"delete from ps_auths where id = ? "#;
-    let aor_delete = r#"delete from ps_aors where id = ? "#;
-    let endpoint_delete = r#"delete from ps_endpoints where id = ? "#;
+    // check exist record.
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pjsip_realtime_accounts WHERE id = $1)")
+            .bind(&account_id)
+            .fetch_one(&mut **transaction)
+            .await?;
 
-    let auth_result = sqlx::query(auth_delete)
-        .bind(&account_id)
-        .execute(&mut **transaction)
-        .await
-        .map_err(DeletionError::from)?;
-    let aor_result = sqlx::query(aor_delete)
-        .bind(&account_id)
-        .execute(&mut **transaction)
-        .await
-        .map_err(DeletionError::from)?;
-    let endpoint_result = sqlx::query(endpoint_delete)
-        .bind(&account_id)
-        .execute(&mut **transaction)
-        .await
-        .map_err(DeletionError::from)?;
-    // Check if any of the deletions failed
-    if auth_result.rows_affected() == 0
-        || aor_result.rows_affected() == 0
-        || endpoint_result.rows_affected() == 0
-    {
-        return Err(DeletionError::DeletionFailed);
+    // Check if the record count is 0 (no records exist)
+    if !exists {
+        return Err(DeletionError::NotFoundRecord);
     }
-    // OK Return
+
+    // Delete SQL statements for pjsip_realtime tables with placeholders
+    // NOTE: This requires the enum definitions to have the correct `#[sqlx(type_name = "...")]` attribute.
+    sqlx::query("DELETE FROM pjsip_realtime_accounts WHERE id = $1")
+        .bind(&account_id)
+        .execute(&mut **transaction)
+        .await?;
+
+    // テーブル名を複数形に修正
+    sqlx::query("DELETE FROM ps_endpoints WHERE id = $1")
+        .bind(&account_id)
+        .execute(&mut **transaction)
+        .await?;
+
+    sqlx::query("DELETE FROM ps_aors WHERE id = $1")
+        .bind(&account_id)
+        .execute(&mut **transaction)
+        .await?;
+
+    sqlx::query("DELETE FROM ps_auths WHERE id = $1")
+        .bind(&account_id)
+        .execute(&mut **transaction)
+        .await?;
+
     Ok(StatusCode::NO_CONTENT)
+}
+
+// get accounts method
+pub async fn get_all_pjsip_accounts(
+    pool: &PgPool,
+) -> Result<Vec<PjsipRealtimeAccountWithId>, sqlx::Error> {
+    let query = "
+        SELECT 
+            id,
+            username,
+            password,
+            transport,
+            context,
+            from_domain,
+            from_user,
+            created_at,
+            updated_at
+        FROM pjsip_realtime_accounts
+        ORDER BY created_at DESC
+    ";
+
+    let rows = sqlx::query(query).fetch_all(pool).await?;
+
+    let mut accounts = Vec::new();
+    for row in rows {
+        let transport_str: String = row.get("transport");
+        let transport = match transport_str.to_lowercase().as_str() {
+            "udp" => TransportType::Udp,
+            "tcp" => TransportType::Tcp,
+            "tls" => TransportType::Tls,
+            "ws" => TransportType::Ws,
+            "wss" => TransportType::Wss,
+            _ => TransportType::Udp, // default fallback
+        };
+
+        accounts.push(PjsipRealtimeAccountWithId {
+            id: row.get("id"),
+            username: row.get("username"),
+            password: row.get("password"),
+            transport,
+            context: row.get("context"),
+            from_domain: row.get("from_domain"),
+            from_user: row.get("from_user"),
+            created_at: row.get::<chrono::NaiveDateTime, _>("created_at").and_utc(),
+            updated_at: row.get::<chrono::NaiveDateTime, _>("updated_at").and_utc(),
+        });
+    }
+
+    Ok(accounts)
 }
