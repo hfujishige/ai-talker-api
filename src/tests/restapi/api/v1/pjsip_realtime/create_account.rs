@@ -39,7 +39,7 @@ async fn test_create_pjsip_realtime_account() {
     let payload: Value = json!({
         "username": "test_user",
         "password": "test_password",
-        "transport": "TransportUdp",
+        "transport": "udp",
         "context": "default",
         "from_domain": "default_domain",
         "from_user": "default_user",

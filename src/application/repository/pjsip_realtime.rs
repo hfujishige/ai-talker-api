@@ -69,7 +69,7 @@ pub async fn create_udp_pjsip_account(
     // ps_endpoint
     let ps_endpoint: PsEndpointForUdp = PsEndpointForUdp {
         id: new_account_id.clone(),
-        transport: TransportType::TransportUdp,
+        transport: TransportType::Udp,
         aors: new_account_id.clone(),
         auth: new_account_id.clone(),
         context: account.context.clone(),

@@ -40,7 +40,7 @@ async fn test_delete_pjsip_realtime_account() {
     let payload: String = json!({
         "username": "test_user",
         "password": "test_password",
-        "transport": "TransportUdp",
+        "transport": "udp",
         "context": "default",
         "from_domain": "default_domain",
         "from_user": "default_user",

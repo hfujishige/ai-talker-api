@@ -1,25 +1,46 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 
-// Our system define
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "transport_type", rename_all = "kebab-case")]
+// PJSIP Transport Type
+#[derive(Debug, Clone, Serialize, sqlx::Type)]
+#[sqlx(type_name = "transport_type", rename_all = "lowercase")]
 pub enum TransportType {
-    TransportUdp,
-    TransportTcp,
-    TransportTls,
-    TransportWs,
-    TransportWss,
+    Udp,
+    Tcp,
+    Tls,
+    Ws,
+    Wss,
 }
 
 impl fmt::Display for TransportType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            TransportType::TransportUdp => write!(f, "udp"),
-            TransportType::TransportTcp => write!(f, "tcp"),
-            TransportType::TransportTls => write!(f, "tls"),
-            TransportType::TransportWs => write!(f, "ws"),
-            TransportType::TransportWss => write!(f, "wss"),
+        let transport_str = match self {
+            TransportType::Udp => "udp",
+            TransportType::Tcp => "tcp",
+            TransportType::Tls => "tls",
+            TransportType::Ws => "ws",
+            TransportType::Wss => "wss",
+        };
+        write!(f, "{}", transport_str)
+    }
+}
+
+impl<'de> Deserialize<'de> for TransportType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.to_lowercase().as_str() {
+            "udp" | "Udp" => Ok(TransportType::Udp),
+            "tcp" | "Tcp" => Ok(TransportType::Tcp),
+            "tls" | "Tls" => Ok(TransportType::Tls),
+            "ws" | "Ws" => Ok(TransportType::Ws),
+            "wss" | "Wss" => Ok(TransportType::Wss),
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid transport type: {}",
+                s
+            ))),
         }
     }
 }

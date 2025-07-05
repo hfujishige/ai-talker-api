@@ -123,15 +123,14 @@ pub async fn exec_delete_pjsip_account(
     }
 
     // check exist record.
-    let exists: PgRow =
-        sqlx::query("SELECT EXISTS(SELECT 1 FROM pjsip_realtime_accounts WHERE id = $1)")
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pjsip_realtime_accounts WHERE id = $1)")
             .bind(&account_id)
             .fetch_one(&mut **transaction)
             .await?;
 
     // Check if the record count is 0 (no records exist)
-    let count: i64 = exists.get(0);
-    if count == 0 {
+    if !exists {
         return Err(DeletionError::NotFoundRecord);
     }
 
@@ -186,12 +185,12 @@ pub async fn get_all_pjsip_accounts(
     for row in rows {
         let transport_str: String = row.get("transport");
         let transport = match transport_str.as_str() {
-            "UDP" => TransportType::TransportUdp,
-            "TCP" => TransportType::TransportTcp,
-            "TLS" => TransportType::TransportTls,
-            "WS" => TransportType::TransportWs,
-            "WSS" => TransportType::TransportWss,
-            _ => TransportType::TransportUdp, // default fallback
+            "UDP" => TransportType::Udp,
+            "TCP" => TransportType::Tcp,
+            "TLS" => TransportType::Tls,
+            "WS" => TransportType::Ws,
+            "WSS" => TransportType::Wss,
+            _ => TransportType::Udp, // default fallback
         };
 
         accounts.push(PjsipRealtimeAccountWithId {

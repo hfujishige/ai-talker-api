@@ -174,11 +174,11 @@ async fn create_pjsip_account(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     // payload.transportがTransportTypeのいずれかの値であることを確認し、個別の処理に振り分け（スタブ）
     match account.transport {
-        TransportType::TransportUdp => {
+        TransportType::Udp => {
             // UDP用の処理（スタブ）
             create_udp_pjsip_account(state.clone(), account_id, &account).await
         }
-        TransportType::TransportTcp => {
+        TransportType::Tcp => {
             // TCP用の処理（スタブ）
             println!("Creating TCP account: {:?}", account.username);
             Err((
@@ -186,7 +186,7 @@ async fn create_pjsip_account(
                 Json(serde_json::json!("TCP transport not implemented")),
             ))
         }
-        TransportType::TransportTls => {
+        TransportType::Tls => {
             // TLS用の処理（スタブ）
             println!("Creating TLS account: {:?}", account.username);
             Err((
@@ -194,7 +194,7 @@ async fn create_pjsip_account(
                 Json(serde_json::json!("TLS transport not implemented")),
             ))
         }
-        TransportType::TransportWs => {
+        TransportType::Ws => {
             // WebSocket用の処理（スタブ）
             println!("Creating WS account: {:?}", account.username);
             Err((
@@ -202,7 +202,7 @@ async fn create_pjsip_account(
                 Json(serde_json::json!("WS transport not implemented")),
             ))
         }
-        TransportType::TransportWss => {
+        TransportType::Wss => {
             // Secure WebSocket用の処理（スタブ）
             println!("Creating WSS account: {:?}", account.username);
             Err((

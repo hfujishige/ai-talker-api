@@ -21,7 +21,7 @@ CREATE TABLE pjsip_realtime_accounts (
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
     transport VARCHAR(10) NOT NULL
-                          CHECK (transport IN ('UDP', 'TCP', 'TLS', 'WS', 'WSS')),
+                          CHECK (transport IN ('udp', 'tcp', 'tls', 'ws', 'wss')),
     context VARCHAR(100) NOT NULL,
     from_domain VARCHAR(255) NOT NULL,
     from_user VARCHAR(50) NOT NULL,
