@@ -13,7 +13,7 @@ db_scheme=postgres
 db_host=127.0.0.1
 db_port=5432
 db_user=api_user_rw
-db_pwd=HE4ycm8uCER3
+db_pwd=q4p05yOt9V9g
 db_catalog=asterisk
 
 export DATABASE_URL=${db_scheme}://${db_user}:${db_pwd}@${db_host}:${db_port}/${db_catalog}

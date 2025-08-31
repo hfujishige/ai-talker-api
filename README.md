@@ -1,7 +1,21 @@
 # Development
 ## Softwares
+### Rust software
+- rust 1.88 or higher
+- cargo
 
-This software need rust.
+### other software
+- [httpie](https://httpie.io/)  
+  [installation manual](https://httpie.io/docs/cli/installation)
+
+### Visual Studio Extensions
+see also [Rust in Visual Studio Code](https://code.visualstudio.com/docs/languages/rust)
+
+debugging need these extensions
+- rust-analyzer
+- CodeLLDB(Linux/MacOS) or Microsoft C++(Windows)
+
+
 
 # Unit Test
 ## cargo libraries for unit test
@@ -36,13 +50,7 @@ cargo llvm-cov -- --test-threads=1 --include-ignored --exact \
 cargo llvm-cov -- --test-threads=1 --include-ignored --exact \ 
       tests::restapi::api::v1::pjsip_realtime::create_account_with_external_id::tests::test_create_pjsip_account_with_external_id_success
 
-
-```
-
-```
-
 # DATABASE Connection String
-
 define connection string at .env files (.env, .env.test, ...)
 ```sh
 cargo sqlx prepare
@@ -53,3 +61,4 @@ or
 export DATABASE_URL=postgres://username:password@localhost/dbname
 cargo sqlx prepare
 ```
+
