@@ -1,7 +1,7 @@
 # Development
 ## Softwares
 ### Rust software
-- rust 1.88 or higher
+- rust 1.90 or higher
 - cargo
 
 ### other software
