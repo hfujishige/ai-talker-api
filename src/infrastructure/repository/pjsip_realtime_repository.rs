@@ -58,12 +58,12 @@ pub async fn exec_insert_udp_pjsip_account(
                              remove_existing, remove_unavailable)
         values ($1, $2, $3, $4, $5, $6, $7, $8::ast_bool_values, $9::ast_bool_values)"#;
     let endpoint_insert: &'static str = r#"
-        insert into ps_endpoints (id, transport, aors, context, disallow, allow, direct_media,
+        insert into ps_endpoints (id, transport, auth, aors, context, disallow, allow, direct_media,
                                   force_rport, rewrite_contact, rtp_symmetric, media_encryption,
                                   from_domain, from_user, dtmf_mode)
-        values ($1, $2::transport_type, $3, $4, $5, $6, $7::ast_bool_values,
-                $8::ast_bool_values, $9::ast_bool_values, $10::ast_bool_values, $11::pjsip_media_encryption_values,
-                $12, $13, $14::pjsip_dtmf_mode_values_v3)"#;
+        values ($1, $2::transport_type, $3, $4, $5, $6, $7, $8::ast_bool_values,
+                $9::ast_bool_values, $10::ast_bool_values, $11::ast_bool_values, $12::pjsip_media_encryption_values,
+                $13, $14, $15::pjsip_dtmf_mode_values_v3)"#;
     // TODO : define result types MySqlQueryResult to PgQueryResult after migrate mysql to postgres)
 
     let account_result: PgQueryResult = sqlx::query(account_insert)
@@ -101,6 +101,7 @@ pub async fn exec_insert_udp_pjsip_account(
     let endpoint_result: PgQueryResult = sqlx::query(endpoint_insert)
         .bind(&endpoint.id)
         .bind(&endpoint.transport.to_string())
+        .bind(&endpoint.auth)
         .bind(&endpoint.aors)
         .bind(&endpoint.context)
         .bind(&endpoint.disallow)
