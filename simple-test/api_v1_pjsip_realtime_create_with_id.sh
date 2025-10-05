@@ -2,18 +2,9 @@
 # test params
 typeset -A tuser
 
-# for unit test
-# tuser=(id unit1234567890 \
-#        username 'taro yamada' \
-#        password 123456 \
-#        transport udp \
-#        context default \
-#        from_domain 'from_domain' \
-#        from_user 'from_user')
-
-# for kamailio+asterisk sip signal integ test.
+# Add SIP account
 tuser=(id 1001 \
-       username 'sipintegtest' \
+       username '1001' \
        password 1234567890 \
        transport udp \
        context default \
