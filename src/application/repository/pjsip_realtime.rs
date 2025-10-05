@@ -62,8 +62,10 @@ pub async fn create_udp_pjsip_account(
         default_expiration: 60,
         minimum_expiration: 60,
         maximum_expiration: 90,
-        qualify_frequency: 10,
-        qualify_timeout: 9,
+        // qualify_frequency: 10,
+        // qualify_timeout: 9,
+        qualify_frequency: 0,  // Disable qualify by setting to 0
+        qualify_timeout: 0,    // Disable qualify by setting to 0
     };
 
     // ps_endpoint
