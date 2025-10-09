@@ -56,7 +56,7 @@ ai-talker-api/
 ## Prerequisites
 
 ### Required Software
-
+- **git**: 2.25 or higher
 - **Rust**: 1.90 or higher
   - [Installation guide](https://www.rust-lang.org/tools/install)
 - **Cargo**: Included with Rust installation
@@ -64,7 +64,8 @@ ai-talker-api/
 - **Podman** or **Docker**: For running PostgreSQL container
 - **HTTPie**: For API testing (optional but recommended)
   - [Installation guide](https://httpie.io/docs/cli/installation)
-
+- **python3**: 3.10 or higher
+- **uv**:
 ### Visual Studio Code Extensions (Recommended)
 
 For development in VS Code, see [Rust in Visual Studio Code](https://code.visualstudio.com/docs/languages/rust)
@@ -156,12 +157,17 @@ Stop container:
 
 ```bash
 # Set DATABASE_URL (or use the one in .env)
-export DATABASE_URL="postgres://api_user_rw:q4p05yOt9V9g@127.0.0.1:5432/asterisk"
+DATABASE_USER=api_user_rw
+DATABASE_PASSWD=HE4ycm8uCER3
+DATABASE_CATALOG=asterisk
+export DATABASE_URL="postgres://${DATABASE_USER}:${DATABASE_PASSWD}@127.0.0.1:5432/${DATABASE_CATALOG}"
 
 # Create database (if not exists)
+cd migrations/
 sqlx database create
 
 # Run migrations
+cd ../
 sqlx migrate run
 ```
 
@@ -179,6 +185,35 @@ cargo sqlx prepare
 ```
 
 This generates `.sqlx/` directory for compile-time query verification without a live database.
+
+6. **Sparse-checkout Asterisk PJSIP Realtime database**
+
+```bash
+git clone --no-checkout git@github.com:asterisk/asterisk.git
+cd asterisk
+git sparse-checkout init --cone
+git sparse-checkout set contrib/ast-db-manage/
+git checkout master
+cd contrib/ast-db-manage/
+cp config.ini.sample config.ini
+vim config.ini
+```
+
+`config.ini`
+Change `sqlalchemy.url`.Disable mysql url. Enable mysql url
+The values for user, pass, and database are specified in `pgsql_container.sh`.
+```conf
+sqlalchemy.url = postgresql://api_user_rw:HE4ycm8uCER3@localhost/asterisk
+```
+
+create pjsip realtime tables
+```sh
+uv init
+uv venv
+source .venv/bin/activate
+uv pip install alembic psycopg2-binary sqlalchemy
+alembic -c config.ini upgrade head
+```
 
 ### Build and Run
 
