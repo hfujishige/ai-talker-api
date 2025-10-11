@@ -4,7 +4,8 @@ use serde_json::Value;
 
 use crate::AppState;
 use crate::application::repository::pjsip_realtime::{
-    create_udp_pjsip_account, delete_pjsip_account, get_pjsip_accounts,
+    create_udp_pjsip_account, create_ws_pjsip_account,
+    delete_pjsip_account, get_pjsip_accounts,
 };
 use crate::infrastructure::models::pjsip_realtime::{
     account::{
@@ -195,12 +196,8 @@ async fn create_pjsip_account(
             ))
         }
         TransportType::Ws => {
-            // WebSocket用の処理（スタブ）
-            println!("Creating WS account: {:?}", account.username);
-            Err((
-                StatusCode::NOT_IMPLEMENTED,
-                Json(serde_json::json!("WS transport not implemented")),
-            ))
+            // WebSocket用の処理
+            create_ws_pjsip_account(state.clone(), account_id, &account).await
         }
         TransportType::Wss => {
             // Secure WebSocket用の処理（スタブ）

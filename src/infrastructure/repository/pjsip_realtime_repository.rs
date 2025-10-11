@@ -4,12 +4,11 @@ use crate::infrastructure::models::{
         account::PjsipRealtimeAccountWithId,
         enums::pjsip_endpoint_enums::TransportType,
         sip_udp::{PsAorForUdp, PsAuthForUdp, PsEndpointForUdp},
+        sip_ws::{PsAorForWs, PsAuthForWs, PsEndpointForWs},
     },
 };
 use axum::http::StatusCode;
-use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Postgres, Row, Transaction, postgres::PgQueryResult};
-use tracing::debug;
 
 // registration method
 pub async fn exec_insert_udp_pjsip_account(
@@ -116,6 +115,125 @@ pub async fn exec_insert_udp_pjsip_account(
         .execute(&mut **transaction)
         .await
         .map_err(RegistrationError::from)?;
+    // if any of the insertions failed, return an error
+    if account_result.rows_affected() == 0
+        || auth_result.rows_affected() == 0
+        || aor_result.rows_affected() == 0
+        || endpoint_result.rows_affected() == 0
+    {
+        return Err(RegistrationError::InsertionFailed);
+    }
+    // return OK status with a success message
+    Ok(StatusCode::CREATED)
+}
+
+// registration method for WebSocket transport
+pub async fn exec_insert_ws_pjsip_account(
+    transaction: &mut Transaction<'_, Postgres>,
+    account: &PjsipRealtimeAccountWithId,
+    auth: &PsAuthForWs,
+    aor: &PsAorForWs,
+    endpoint: &PsEndpointForWs,
+) -> Result<StatusCode, RegistrationError> {
+    // Validate the input data
+    if auth.id.is_empty() || aor.id.is_empty() || endpoint.id.is_empty() {
+        return Err(RegistrationError::ValidationError(
+            "ID cannot be empty".to_string(),
+        ));
+    }
+
+    // check duplicate account
+    let exists: bool = sqlx::query_scalar(
+        r#"SELECT EXISTS(SELECT 1 FROM pjsip_realtime_accounts WHERE id = $1 or username = $2)"#,
+    )
+    .bind(&account.id)
+    .bind(&account.username)
+    .fetch_one(&mut **transaction)
+    .await?;
+
+    println!("Checking account with ID {} exists: {}", account.id, exists);
+    if exists {
+        return Err(RegistrationError::DuplicateError);
+    }
+
+    // Insert SQL statements for pjsip_realtime tables
+    let account_insert: &'static str = r#"
+        INSERT INTO pjsip_realtime_accounts
+        (id, username, password, transport, context, from_domain, from_user, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"#;
+    let auth_insert: &'static str = r#"
+        insert into ps_auths (id, auth_type, password, username)
+        values ($1, $2::pjsip_auth_type_values_v2, $3, $4)"#;
+    let aor_insert: &'static str = r#"
+        insert into ps_aors (id, default_expiration, max_contacts, minimum_expiration,
+                             maximum_expiration, remove_existing, remove_unavailable)
+        values ($1, $2, $3, $4, $5, $6::ast_bool_values, $7::ast_bool_values)"#;
+    let endpoint_insert: &'static str = r#"
+        insert into ps_endpoints (id, transport, aors, auth, context, disallow, allow, direct_media,
+                                  force_rport, rewrite_contact, rtp_symmetric, media_encryption,
+                                  from_domain, from_user, dtmf_mode, rtp_ipv6, ice_support, use_avpf,
+                                  webrtc, max_audio_streams, max_video_streams)
+        values ($1, $2::transport_type, $3, $4, $5, $6, $7, $8::ast_bool_values,
+                $9::ast_bool_values, $10::ast_bool_values, $11::ast_bool_values, $12::pjsip_media_encryption_values,
+                $13, $14, $15::pjsip_dtmf_mode_values_v3, $16::ast_bool_values, $17::ast_bool_values, $18::ast_bool_values,
+                $19::ast_bool_values, $20, $21)"#;
+
+    let account_result: PgQueryResult = sqlx::query(account_insert)
+        .bind(&account.id)
+        .bind(&account.username)
+        .bind(&account.password)
+        .bind(account.transport.to_string())
+        .bind(&account.context)
+        .bind(&account.from_domain)
+        .bind(&account.from_user)
+        .execute(&mut **transaction)
+        .await
+        .map_err(RegistrationError::from)?;
+    let auth_result: PgQueryResult = sqlx::query(auth_insert)
+        .bind(&auth.id)
+        .bind(&auth.auth_type.to_string())
+        .bind(&auth.password)
+        .bind(&auth.username)
+        .execute(&mut **transaction)
+        .await
+        .map_err(RegistrationError::from)?;
+    let aor_result: PgQueryResult = sqlx::query(aor_insert)
+        .bind(&aor.id)
+        .bind(&aor.default_expiration)
+        .bind(&aor.max_contacts)
+        .bind(&aor.minimum_expiration)
+        .bind(&aor.maximum_expiration)
+        .bind(&aor.remove_existing.to_string())
+        .bind(&aor.remove_unavailable.to_string())
+        .execute(&mut **transaction)
+        .await
+        .map_err(RegistrationError::from)?;
+    let endpoint_result: PgQueryResult = sqlx::query(endpoint_insert)
+        .bind(&endpoint.id)
+        .bind(&endpoint.transport.to_string())
+        .bind(&endpoint.aors)
+        .bind(&endpoint.auth)
+        .bind(&endpoint.context)
+        .bind(&endpoint.disallow)
+        .bind(&endpoint.allow)
+        .bind(&endpoint.direct_media.to_string())
+        .bind(&endpoint.force_rport.to_string())
+        .bind(&endpoint.rewrite_contact.to_string())
+        .bind(&endpoint.rtp_symmetric.to_string())
+        .bind(&endpoint.media_encryption.to_string())
+        .bind(&endpoint.from_domain)
+        .bind(&endpoint.from_user)
+        .bind(&endpoint.dtmf_mode.to_string())
+        .bind(&endpoint.rtp_ipv6.to_string())
+        .bind(endpoint.ice_support.as_ref().map(|v| v.to_string()))
+        .bind(endpoint.use_avpf.as_ref().map(|v| v.to_string()))
+        .bind(endpoint.webrtc.as_ref().map(|v| v.to_string()))
+        .bind(&endpoint.max_audio_streams)
+        .bind(&endpoint.max_video_streams)
+        .execute(&mut **transaction)
+        .await
+        .map_err(RegistrationError::from)?;
+
     // if any of the insertions failed, return an error
     if account_result.rows_affected() == 0
         || auth_result.rows_affected() == 0

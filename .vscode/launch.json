@@ -20,6 +20,24 @@
                 "RUST_BACKTRACE": "1"
             },
             "preLaunchTask": "rust: cargo build"
+        },
+        {
+            "name": "Run Axum Web Server with dev-ext",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/ai-talker-api",
+            "args": [
+                "--color=always",
+                "--profile",
+                "dev",
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "env": {
+                "RUST_BACKTRACE": "1"
+            },
+            "envFile": "${workspaceFolder}/.env.dev-ext",
+            "preLaunchTask": "rust: cargo build"
         }
     ]
 }
