@@ -48,6 +48,7 @@ ai-talker-api/
 │   │   ├── handlers/        # Request handlers
 │   │   └── routes/          # Route definitions
 │   └── tests/               # Integration tests
+├── setup/              # Database initial setup script(s)
 ├── migrations/              # Database migrations
 ├── simple-test/             # Manual API test scripts
 └── container_volumes/       # Docker/Podman volumes (auto-generated)
@@ -64,8 +65,9 @@ ai-talker-api/
 - **Podman** or **Docker**: For running PostgreSQL container
 - **HTTPie**: For API testing (optional but recommended)
   - [Installation guide](https://httpie.io/docs/cli/installation)
+- **uv**: An extremely fast Python package and project manager, written in Rust.
+  - [Installation guide](https://docs.astral.sh/uv/getting-started/installation/)
 - **python3**: 3.10 or higher
-- **uv**:
 ### Visual Studio Code Extensions (Recommended)
 
 For development in VS Code, see [Rust in Visual Studio Code](https://code.visualstudio.com/docs/languages/rust)
@@ -122,7 +124,6 @@ PJSIP_DB_TIMEOUT=10
 **Note**: For production, use strong passwords and enable SSL connections.
 
 ### Database Setup
-
 1. **Install SQLx CLI** (one-time setup):
 
 ```bash
@@ -137,6 +138,7 @@ mkdir -p container_volumes/postgres_data
 
 3. **Start PostgreSQL container**:
 
+If you use PostgreSQL container. follow this procedure.
 ```bash
 ./pgsql_container.sh start
 ```
@@ -153,21 +155,32 @@ Stop container:
 ./pgsql_container.sh stop
 ```
 
-4. **Run database migrations**:
+4. **Create Database user**(one-time setup):
+
+Note: this script need `postgres` user password.
+run `run_setup.sh` script.  
+```bash
+./setup/run_setup.sh
+```
+
+5. **Run database migrations**:
 
 ```bash
 # Set DATABASE_URL (or use the one in .env)
 DATABASE_USER=api_user_rw
-DATABASE_PASSWD=HE4ycm8uCER3
+DATABASE_PASSWD=q4p05yOt9V9g
 DATABASE_CATALOG=asterisk
-export DATABASE_URL="postgres://${DATABASE_USER}:${DATABASE_PASSWD}@127.0.0.1:5432/${DATABASE_CATALOG}"
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=5432
+export DATABASE_URL="postgres://${DATABASE_USER}:${DATABASE_PASSWD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_CATALOG}"
 
-# Create database (if not exists)
-cd migrations/
+# Check DATABASE_URL
+echo $DATABASE_URL
+
+# Create database (if database is not exists)
 sqlx database create
 
 # Run migrations
-cd ../
 sqlx migrate run
 ```
 
@@ -178,7 +191,7 @@ Verify migrations:
 sqlx migrate info
 ```
 
-5. **Prepare SQLx for offline compilation** (optional):
+6. **Prepare SQLx for offline compilation** (optional):
 
 ```bash
 cargo sqlx prepare
@@ -186,7 +199,7 @@ cargo sqlx prepare
 
 This generates `.sqlx/` directory for compile-time query verification without a live database.
 
-6. **Sparse-checkout Asterisk PJSIP Realtime database**
+7. **Sparse-checkout Asterisk PJSIP Realtime database**
 
 ```bash
 git clone --no-checkout git@github.com:asterisk/asterisk.git
@@ -208,6 +221,12 @@ sqlalchemy.url = postgresql://api_user_rw:HE4ycm8uCER3@localhost/asterisk
 
 create pjsip realtime tables
 ```sh
+# Install python3 if you did not install python3.x
+# e.g, install 3.13.x
+uv python list
+uv python install 3.13
+
+# migrate pjsip realtime tables.
 uv init
 uv venv
 source .venv/bin/activate
