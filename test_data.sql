@@ -7,7 +7,7 @@ INSERT INTO pjsip_realtime_accounts (
     'test_user_1', 
     'test_password_1', 
     'UDP', 
-    'default', 
+    'from-sbc', 
     'example.com', 
     'test_user_1',
     CURRENT_TIMESTAMP,

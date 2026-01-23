@@ -9,21 +9,21 @@ tuser1=(id '3001' \
         username '3001' \
         password '1234567890' \
         transport 'ws' \
-        context 'default' \
+        context 'from-sbc' \
         from_domain 'example.com' \
         from_user '3001')
 tuser2=(id '3002' \
         username '3002' \
         password '1234567890' \
         transport 'ws' \
-        context 'default' \
+        context 'from-sbc' \
         from_domain 'example.com' \
         from_user '3002')
 tuser3=(id '3003' \
         username '3003' \
         password '1234567890' \
         transport 'ws' \
-        context 'default' \
+        context 'from-sbc' \
         from_domain 'example.jp' \
         from_user '3003')
 
