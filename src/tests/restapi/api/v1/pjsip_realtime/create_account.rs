@@ -43,7 +43,7 @@ async fn test_create_pjsip_realtime_account() {
         "username": "test_user",
         "password": "test_password",
         "transport": "udp",
-        "context": "default",
+        "context": "from-sbc",
         "from_domain": "default_domain",
         "from_user": "default_user",
     });
