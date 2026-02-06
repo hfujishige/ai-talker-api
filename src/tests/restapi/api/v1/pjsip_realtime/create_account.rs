@@ -6,7 +6,7 @@ use axum::{
 };
 use dotenvy::from_filename;
 use http_body_util::BodyExt; // for `collect`
-use serde_json::{Value, json};
+use serde_json::Value;
 use serial_test::serial;
 use sqlx::{Error, PgPool, Pool, Postgres};
 use tower::ServiceExt;
@@ -43,7 +43,7 @@ async fn test_create_pjsip_realtime_account() {
         "username": "test_user",
         "password": "test_password",
         "transport": "udp",
-        "context": "from-sbc",
+        "context": "from-sipproxy",
         "from_domain": "default_domain",
         "from_user": "default_user",
     });

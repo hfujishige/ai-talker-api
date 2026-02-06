@@ -298,7 +298,7 @@ Request body:
   "username": "john_doe",
   "password": "123456",
   "transport": "udp",
-  "context": "from-sbc",
+  "context": "from-sipproxy",
   "from_domain": "example.com",
   "from_user": "1001"
 }
@@ -310,7 +310,7 @@ http POST http://127.0.0.1:3000/api/v1/pjsip_realtime/accounts \
   username="john_doe" \
   password="123456" \
   transport="udp" \
-  context="from-sbc" \
+  context="from-sipproxy" \
   from_domain="example.com" \
   from_user="1001"
 ```
@@ -329,7 +329,7 @@ Request body:
   "username": "jane_doe",
   "password": "654321",
   "transport": "udp",
-  "context": "from-sbc",
+  "context": "from-sipproxy",
   "from_domain": "example.com",
   "from_user": "1002"
 }
@@ -342,7 +342,7 @@ http POST http://127.0.0.1:3000/api/v1/pjsip_realtime/accounts_with_id \
   username="jane_doe" \
   password="654321" \
   transport="udp" \
-  context="from-sbc" \
+  context="from-sipproxy" \
   from_domain="example.com" \
   from_user="1002"
 ```

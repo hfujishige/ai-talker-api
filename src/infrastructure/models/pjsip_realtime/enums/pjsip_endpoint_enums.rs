@@ -326,4 +326,74 @@ impl fmt::Display for SecurityNegotiation {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(i32)]
+pub enum RtpTimeout {
+    Zero = 0,
+    Fifteen = 15,
+    Thirty = 30,
+    Sixty = 60,
+    Ninety = 90,
+    OneTwenty = 120,
+    OneEighty = 180,
+    ThreeHundred = 300,
+    SixHundred = 600,
+}
+
+impl Serialize for RtpTimeout {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_i32(self.as_i32())
+    }
+}
+
+impl<'de> Deserialize<'de> for RtpTimeout {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = i32::deserialize(deserializer)?;
+        match value {
+            0 => Ok(RtpTimeout::Zero),
+            15 => Ok(RtpTimeout::Fifteen),
+            30 => Ok(RtpTimeout::Thirty),
+            60 => Ok(RtpTimeout::Sixty),
+            90 => Ok(RtpTimeout::Ninety),
+            120 => Ok(RtpTimeout::OneTwenty),
+            180 => Ok(RtpTimeout::OneEighty),
+            300 => Ok(RtpTimeout::ThreeHundred),
+            600 => Ok(RtpTimeout::SixHundred),
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid RTP timeout value: {}. Valid values are: 0, 15, 30, 60, 90, 120, 180, 300, 600",
+                value
+            ))),
+        }
+    }
+}
+
+impl RtpTimeout {
+    /// Returns the integer value for database storage
+    pub fn as_i32(&self) -> i32 {
+        match self {
+            RtpTimeout::Zero => 0,
+            RtpTimeout::Fifteen => 15,
+            RtpTimeout::Thirty => 30,
+            RtpTimeout::Sixty => 60,
+            RtpTimeout::Ninety => 90,
+            RtpTimeout::OneTwenty => 120,
+            RtpTimeout::OneEighty => 180,
+            RtpTimeout::ThreeHundred => 300,
+            RtpTimeout::SixHundred => 600,
+        }
+    }
+}
+
+impl fmt::Display for RtpTimeout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_i32())
+    }
+}
 // end of pjsip fixed defines

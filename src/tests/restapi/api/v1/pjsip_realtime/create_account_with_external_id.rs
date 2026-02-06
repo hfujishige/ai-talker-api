@@ -71,7 +71,7 @@ mod tests {
             "username": "external_id_test_user",
             "password": "test_password_123",
             "transport": "udp",
-            "context": "from-sbc",
+            "context": "from-sipproxy",
             "from_domain": "test.example.com",
             "from_user": "external_id_test_user"
         });
@@ -116,7 +116,7 @@ mod tests {
             "username": "test_user_empty_id",
             "password": "test_password_123",
             "transport": "udp",
-            "context": "from-sbc",
+            "context": "from-sipproxy",
             "from_domain": "test.example.com",
             "from_user": "test_user_empty_id"
         });
@@ -153,7 +153,7 @@ mod tests {
             "username": "duplicate_test_user_1",
             "password": "test_password_123",
             "transport": "udp",
-            "context": "from-sbc",
+            "context": "from-sipproxy",
             "from_domain": "test.example.com",
             "from_user": "duplicate_test_user_1"
         });

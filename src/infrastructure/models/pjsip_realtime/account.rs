@@ -1,4 +1,4 @@
-use crate::infrastructure::models::pjsip_realtime::enums::pjsip_endpoint_enums::TransportType;
+use crate::infrastructure::models::pjsip_realtime::enums::pjsip_endpoint_enums::{RtpTimeout, TransportType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -16,6 +16,10 @@ pub struct PjsipRealtimeAccount {
     pub context: String,
     pub from_domain: String,
     pub from_user: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rtp_timeout: Option<RtpTimeout>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rtp_timeout_hold: Option<RtpTimeout>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -27,6 +31,10 @@ pub struct PjsipRealtimeAccountWithExternalId {
     pub context: String,
     pub from_domain: String,
     pub from_user: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rtp_timeout: Option<RtpTimeout>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rtp_timeout_hold: Option<RtpTimeout>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -38,6 +46,8 @@ pub struct PjsipRealtimeAccountWithId {
     pub context: String,
     pub from_domain: String,
     pub from_user: String,
+    pub rtp_timeout: Option<RtpTimeout>,
+    pub rtp_timeout_hold: Option<RtpTimeout>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
