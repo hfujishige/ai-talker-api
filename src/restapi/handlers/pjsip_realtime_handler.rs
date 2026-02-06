@@ -11,7 +11,7 @@ use crate::infrastructure::models::pjsip_realtime::{
     account::{
         PjsipRealtimeAccount, PjsipRealtimeAccountWithExternalId, PjsipRealtimeAccountWithId,
     },
-    enums::pjsip_endpoint_enums::TransportType,
+    enums::pjsip_endpoint_enums::{RtpTimeout, TransportType},
 };
 
 pub async fn get_pjsip_accounts_handler(state: State<AppState>) -> impl IntoResponse {
@@ -45,6 +45,10 @@ pub async fn create_pjsip_account_handler(
             println!("Created account {} with ID: {}", account.username, id);
 
             // PjsipRealtimeAccountWithId型の変数を作成してidと引数データをまとめる
+            // Apply default values to match database layer behavior
+            let rtp_timeout = Some(account.rtp_timeout.unwrap_or(RtpTimeout::Thirty));
+            let rtp_timeout_hold = Some(account.rtp_timeout_hold.unwrap_or(RtpTimeout::ThreeHundred));
+            
             let now = chrono::Utc::now();
             let response_account = PjsipRealtimeAccountWithId {
                 id: String::from(id),
@@ -54,6 +58,8 @@ pub async fn create_pjsip_account_handler(
                 transport: account.transport,
                 from_domain: account.from_domain,
                 from_user: account.from_user,
+                rtp_timeout: rtp_timeout,
+                rtp_timeout_hold: rtp_timeout_hold,
                 created_at: now,
                 updated_at: now,
             };
@@ -99,6 +105,11 @@ pub async fn create_pjsip_account_with_external_id_handler(
     }
 
     let new_account_id: Option<String> = payload.id.clone().into();
+    
+    // Debug: Print received RTP timeout values
+    println!("Received rtp_timeout: {:?}", payload.rtp_timeout);
+    println!("Received rtp_timeout_hold: {:?}", payload.rtp_timeout_hold);
+    
     let account: PjsipRealtimeAccount = PjsipRealtimeAccount {
         username: payload.username,
         password: payload.password,
@@ -106,6 +117,8 @@ pub async fn create_pjsip_account_with_external_id_handler(
         context: payload.context,
         from_domain: payload.from_domain,
         from_user: payload.from_user,
+        rtp_timeout: payload.rtp_timeout,
+        rtp_timeout_hold: payload.rtp_timeout_hold,
     };
     match create_pjsip_account(state.clone(), new_account_id, &account).await {
         Ok((status, json_response)) => {
@@ -118,6 +131,10 @@ pub async fn create_pjsip_account_with_external_id_handler(
             println!("Created account {} with ID: {}", account.username, id);
 
             // PjsipRealtimeAccountWithId型の変数を作成してidと引数データをまとめる
+            // Apply default values to match database layer behavior
+            let rtp_timeout = Some(account.rtp_timeout.unwrap_or(RtpTimeout::Thirty));
+            let rtp_timeout_hold = Some(account.rtp_timeout_hold.unwrap_or(RtpTimeout::ThreeHundred));
+            
             let now = chrono::Utc::now();
             let response_account = PjsipRealtimeAccountWithId {
                 id: String::from(id),
@@ -127,6 +144,8 @@ pub async fn create_pjsip_account_with_external_id_handler(
                 transport: account.transport,
                 from_domain: account.from_domain,
                 from_user: account.from_user,
+                rtp_timeout: rtp_timeout,
+                rtp_timeout_hold: rtp_timeout_hold,
                 created_at: now,
                 updated_at: now,
             };

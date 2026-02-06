@@ -2,7 +2,7 @@ use crate::AppState;
 use crate::infrastructure::models::errors::registration_error::RegistrationError;
 use crate::infrastructure::models::pjsip_realtime::enums::{
     pjsip_auth_enums::AuthType,
-    pjsip_endpoint_enums::{DtmfMode, MediaEncryption, TransportType},
+    pjsip_endpoint_enums::{DtmfMode, MediaEncryption, RtpTimeout, TransportType},
     pjsip_realtime_common_enums::TurnOnOff,
 };
 use crate::infrastructure::models::pjsip_realtime::{
@@ -43,6 +43,8 @@ pub async fn create_udp_pjsip_account(
         transport: account.transport.clone(),
         from_domain: account.from_domain.clone(),
         from_user: account.from_user.clone(),
+        rtp_timeout: account.rtp_timeout,
+        rtp_timeout_hold: account.rtp_timeout_hold,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
@@ -207,6 +209,8 @@ pub async fn create_ws_pjsip_account(
         transport: account.transport.clone(),
         from_domain: account.from_domain.clone(),
         from_user: account.from_user.clone(),
+        rtp_timeout: account.rtp_timeout,
+        rtp_timeout_hold: account.rtp_timeout_hold,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
@@ -248,6 +252,8 @@ pub async fn create_ws_pjsip_account(
         media_encryption: MediaEncryption::Dtls,
         from_domain: account.from_domain.clone(),
         from_user: account.from_user.clone(),
+        rtp_timeout: Some(account.rtp_timeout.unwrap_or(RtpTimeout::Thirty)),        // Use provided value or default to 30 seconds
+        rtp_timeout_hold: Some(account.rtp_timeout_hold.unwrap_or(RtpTimeout::ThreeHundred)),  // Use provided value or default to 300 seconds
         ice_support: Some(TurnOnOff::Yes), // ICE is typically required for WebRTC
         use_avpf: Some(TurnOnOff::Yes),    // AVPF is recommended for WebRTC
         webrtc: Some(TurnOnOff::Yes),      // Enable WebRTC

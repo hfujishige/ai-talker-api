@@ -173,11 +173,11 @@ pub async fn exec_insert_ws_pjsip_account(
         insert into ps_endpoints (id, transport, aors, auth, context, disallow, allow, direct_media,
                                   force_rport, rewrite_contact, rtp_symmetric, media_encryption,
                                   from_domain, from_user, dtmf_mode, rtp_ipv6, ice_support, use_avpf,
-                                  webrtc, max_audio_streams, max_video_streams)
+                                  webrtc, max_audio_streams, max_video_streams, rtp_timeout, rtp_timeout_hold)
         values ($1, $2::transport_type, $3, $4, $5, $6, $7, $8::ast_bool_values,
                 $9::ast_bool_values, $10::ast_bool_values, $11::ast_bool_values, $12::pjsip_media_encryption_values,
                 $13, $14, $15::pjsip_dtmf_mode_values_v3, $16::ast_bool_values, $17::ast_bool_values, $18::ast_bool_values,
-                $19::ast_bool_values, $20, $21)"#;
+                $19::ast_bool_values, $20, $21, $22, $23)"#;
 
     let account_result: PgQueryResult = sqlx::query(account_insert)
         .bind(&account.id)
@@ -231,6 +231,8 @@ pub async fn exec_insert_ws_pjsip_account(
         .bind(endpoint.webrtc.as_ref().map(|v| v.to_string()))
         .bind(&endpoint.max_audio_streams)
         .bind(&endpoint.max_video_streams)
+        .bind(endpoint.rtp_timeout.as_ref().map(|v| v.as_i32()))
+        .bind(endpoint.rtp_timeout_hold.as_ref().map(|v| v.as_i32()))
         .execute(&mut **transaction)
         .await
         .map_err(RegistrationError::from)?;
@@ -335,6 +337,8 @@ pub async fn get_all_pjsip_accounts(
             context: row.get("context"),
             from_domain: row.get("from_domain"),
             from_user: row.get("from_user"),
+            rtp_timeout: None,
+            rtp_timeout_hold: None,
             created_at: row.get::<chrono::NaiveDateTime, _>("created_at").and_utc(),
             updated_at: row.get::<chrono::NaiveDateTime, _>("updated_at").and_utc(),
         });
