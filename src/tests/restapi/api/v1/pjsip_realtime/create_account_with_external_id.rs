@@ -6,15 +6,16 @@ mod tests {
         http::response::Response,
         http::{Request, StatusCode},
     };
+    use dotenvy::from_filename;
     use http_body_util::BodyExt;
     use serde_json::Value;
     use serial_test::serial;
-    use sqlx::Postgres;
-    use sqlx::{PgPool, Pool};
+    use sqlx::{Error, PgPool, Pool, Postgres};
     use tower::ServiceExt;
 
     use crate::{
         AppState,
+        create_pjsip_pool,
         infrastructure::models::pjsip_realtime::{
             account::PjsipRealtimeAccountWithId, enums::pjsip_endpoint_enums::TransportType,
         },
@@ -22,12 +23,18 @@ mod tests {
     };
 
     async fn setup_test_app() -> Router {
-        let database_url: String =
-            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+        // Load test environment variables
+        from_filename(".env.test").ok();
 
-        let pool: Pool<Postgres> = PgPool::connect(&database_url)
-            .await
-            .expect("Failed to connect to test database");
+        // Create database pool using the same method as other tests
+        let create_pjsip_pool_result: Result<Pool<Postgres>, Error> = create_pjsip_pool().await;
+        let pool: PgPool = match create_pjsip_pool_result {
+            Ok(pool) => pool,
+            Err(e) => {
+                tracing::error!("Failed to create PJSIP database connection pool: {}", e);
+                panic!("Failed to create PJSIP database connection pool");
+            }
+        };
 
         // Clean up any existing test data
         let _ = sqlx::query("DELETE FROM pjsip_realtime_accounts WHERE id = '01HX1234567890ABCDEFGHIJK9' OR username = 'external_id_test_user'")
@@ -48,10 +55,12 @@ mod tests {
     }
 
     async fn cleanup_test_data() {
-        let database_url: String =
-            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+        // Load test environment variables
+        from_filename(".env.test").ok();
 
-        if let Ok(pool) = PgPool::connect(&database_url).await {
+        // Create database pool using the same method as other tests
+        let create_pjsip_pool_result: Result<Pool<Postgres>, Error> = create_pjsip_pool().await;
+        if let Ok(pool) = create_pjsip_pool_result {
             let _ = sqlx::query("DELETE FROM pjsip_realtime_accounts WHERE id = '01HX1234567890ABCDEFGHIJK9' OR username = 'external_id_test_user'")
                 .execute(&pool)
                 .await;

@@ -58,8 +58,8 @@ pub async fn create_pjsip_account_handler(
                 transport: account.transport,
                 from_domain: account.from_domain,
                 from_user: account.from_user,
-                rtp_timeout: rtp_timeout,
-                rtp_timeout_hold: rtp_timeout_hold,
+                rtp_timeout,
+                rtp_timeout_hold,
                 created_at: now,
                 updated_at: now,
             };
@@ -144,8 +144,8 @@ pub async fn create_pjsip_account_with_external_id_handler(
                 transport: account.transport,
                 from_domain: account.from_domain,
                 from_user: account.from_user,
-                rtp_timeout: rtp_timeout,
-                rtp_timeout_hold: rtp_timeout_hold,
+                rtp_timeout,
+                rtp_timeout_hold,
                 created_at: now,
                 updated_at: now,
             };
@@ -196,7 +196,7 @@ async fn create_pjsip_account(
     match account.transport {
         TransportType::Udp => {
             // UDP用の処理（スタブ）
-            create_udp_pjsip_account(state.clone(), account_id, &account).await
+            create_udp_pjsip_account(state.clone(), account_id, account).await
         }
         TransportType::Tcp => {
             // TCP用の処理（スタブ）
@@ -216,7 +216,7 @@ async fn create_pjsip_account(
         }
         TransportType::Ws => {
             // WebSocket用の処理
-            create_ws_pjsip_account(state.clone(), account_id, &account).await
+            create_ws_pjsip_account(state.clone(), account_id, account).await
         }
         TransportType::Wss => {
             // Secure WebSocket用の処理（スタブ）
