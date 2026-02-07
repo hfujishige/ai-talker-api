@@ -4,21 +4,39 @@ A RESTful API server for managing PJSIP (Asterisk) realtime accounts, built with
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
-  - [Clone the Repository](#clone-the-repository)
-  - [Environment Setup](#environment-setup)
-  - [Database Setup](#database-setup)
-  - [Build and Run](#build-and-run)
-- [API Endpoints](#api-endpoints)
-- [Testing](#testing)
-  - [Unit Tests](#unit-tests)
-  - [Integration Tests](#integration-tests)
-- [Development](#development)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+- [AI Talker API](#ai-talker-api)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [Key Features](#key-features)
+  - [Architecture](#architecture)
+  - [Prerequisites](#prerequisites)
+    - [Required Software](#required-software)
+    - [Visual Studio Code Extensions (Recommended)](#visual-studio-code-extensions-recommended)
+  - [Getting Started](#getting-started)
+    - [Clone the Repository](#clone-the-repository)
+    - [Environment Setup](#environment-setup)
+    - [Database Setup](#database-setup)
+    - [Build and Run](#build-and-run)
+  - [API Endpoints](#api-endpoints)
+    - [Get All Accounts](#get-all-accounts)
+    - [Create Account (Auto-generated ID)](#create-account-auto-generated-id)
+    - [Create Account (Custom ID)](#create-account-custom-id)
+    - [Delete Account](#delete-account)
+    - [Supported Transport Types](#supported-transport-types)
+  - [Testing](#testing)
+    - [Unit Tests](#unit-tests)
+    - [Integration Tests](#integration-tests)
+  - [Development](#development)
+    - [Project Structure](#project-structure)
+    - [Adding a New Migration](#adding-a-new-migration)
+    - [Database Connection Management](#database-connection-management)
+    - [Logging](#logging)
+  - [Troubleshooting](#troubleshooting)
+    - [Database Connection Issues](#database-connection-issues)
+    - [Migration Errors](#migration-errors)
+    - [Compilation Errors](#compilation-errors)
+    - [Port Already in Use](#port-already-in-use)
+  - [License](#license)
 
 ## Overview
 
@@ -58,7 +76,7 @@ ai-talker-api/
 
 ### Required Software
 - **git**: 2.25 or higher
-- **Rust**: 1.90 or higher
+- **Rust**: 1.93 or higher
   - [Installation guide](https://www.rust-lang.org/tools/install)
 - **Cargo**: Included with Rust installation
 - **PostgreSQL**: 13 or higher (via Docker/Podman)
@@ -168,7 +186,7 @@ run `run_setup.sh` script.
 ```bash
 # Set DATABASE_URL (or use the one in .env)
 DATABASE_USER=api_user_rw
-DATABASE_PASSWD=q4p05yOt9V9g
+DATABASE_PASSWD=HE4ycm8uCER3
 DATABASE_CATALOG=asterisk
 DATABASE_HOST=127.0.0.1
 DATABASE_PORT=5432

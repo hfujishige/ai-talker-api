@@ -5,25 +5,32 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
+    use dotenvy::from_filename;
     use http_body_util::BodyExt;
     use serde_json::Value;
-    use sqlx::PgPool;
+    use sqlx::{Error, PgPool, Pool, Postgres};
     use tower::ServiceExt;
 
     use crate::{
-        AppState, infrastructure::models::pjsip_realtime::account::PjsipRealtimeAccountWithId,
+        AppState,
+        create_pjsip_pool,
+        infrastructure::models::pjsip_realtime::account::PjsipRealtimeAccountWithId,
         restapi::routes::pjsip_realtime_router::pjsip_realtime_router,
     };
 
     async fn setup_test_app() -> Router {
-        // Note: In real tests, you would set up a test database
-        // For now, we'll use the actual database pool
-        let database_url =
-            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+        // Load test environment variables
+        from_filename(".env.test").ok();
 
-        let pool = PgPool::connect(&database_url)
-            .await
-            .expect("Failed to connect to test database");
+        // Create database pool using the same method as other tests
+        let create_pjsip_pool_result: Result<Pool<Postgres>, Error> = create_pjsip_pool().await;
+        let pool: PgPool = match create_pjsip_pool_result {
+            Ok(pool) => pool,
+            Err(e) => {
+                tracing::error!("Failed to create PJSIP database connection pool: {}", e);
+                panic!("Failed to create PJSIP database connection pool");
+            }
+        };
 
         let state = AppState { pjsip_db: pool };
         pjsip_realtime_router(state)
