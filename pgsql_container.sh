@@ -4,7 +4,7 @@
 CONTAINER_NAME="aitalker-postgres"
 POSTGRES_USER="api_user_rw"
 POSTGRES_PASSWORD="HE4ycm8uCER3"
-POSTGRES_PORT=5432
+POSTGRES_PORT=25432
 VOLUME_PATH="`pwd`/container_volumes/postgres_data"  # 保存先（自由に変更OK）
 
 # 引数チェック
@@ -35,10 +35,10 @@ case $1 in
         -e POSTGRES_USER=$POSTGRES_USER \
         -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
         -p $POSTGRES_PORT:5432 \
-        -v $VOLUME_PATH:/var/lib/postgresql/data \
-        docker.io/library/postgres:latest
+        -v $VOLUME_PATH:/var/lib/postgresql \
+        docker.io/library/postgres:18.2-alpine3.22
         # for host is SELinux env.
-        # -v $VOLUME_PATH:/var/lib/postgresql/data:Z \
+        # -v $VOLUME_PATH:/var/lib/postgresql:Z \
 
     fi
     ;;
