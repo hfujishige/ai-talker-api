@@ -126,9 +126,9 @@ LISTEN_PORT_V4=3000
 # PostgreSQL Database Configuration
 PJSIP_DB_SCHEME=postgres
 PJSIP_DB_HOST=127.0.0.1
-PJSIP_DB_PORT=5432
+PJSIP_DB_PORT=25432
 PJSIP_DB_USER=api_user_rw
-PJSIP_DB_PWD=q4p05yOt9V9g
+PJSIP_DB_PWD=HE4ycm8uCER3
 PJSIP_DB_CATALOG=asterisk
 PJSIP_DB_SSL_MODE=prefer
 
@@ -189,7 +189,7 @@ DATABASE_USER=api_user_rw
 DATABASE_PASSWD=HE4ycm8uCER3
 DATABASE_CATALOG=asterisk
 DATABASE_HOST=127.0.0.1
-DATABASE_PORT=5432
+DATABASE_PORT=25432
 export DATABASE_URL="postgres://${DATABASE_USER}:${DATABASE_PASSWD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_CATALOG}"
 
 # Check DATABASE_URL
@@ -525,7 +525,7 @@ RUST_LOG=trace cargo run
 3. **Test database connection**:
 
 ```bash
-psql -h 127.0.0.1 -p 5432 -U api_user_rw -d asterisk
+psql -h 127.0.0.1 -p 25432 -U api_user_rw -d asterisk
 ```
 
 ### Migration Errors

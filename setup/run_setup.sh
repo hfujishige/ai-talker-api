@@ -3,7 +3,7 @@
 psql_user="postgres"
 psql_db="asterisk"
 psql_host="127.0.0.1"
-psql_port="5432"
+psql_port="25432"
 
 #　run create database users sql 
 script_dir="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"

@@ -11,7 +11,7 @@ run these commands at project root directory.
 ```sh
 db_scheme=postgres
 db_host=127.0.0.1
-db_port=5432
+db_port=25432
 db_user=api_user_rw
 db_pwd=q4p05yOt9V9g
 db_catalog=asterisk
